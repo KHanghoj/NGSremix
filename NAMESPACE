@@ -1,0 +1,4 @@
+
+export(relate,simGeno)
+useDynLib(relateAdmix,relateC)
+ 

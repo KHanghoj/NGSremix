@@ -1,0 +1,10 @@
+Package: relateAdmix
+Type: Package
+Title: pairwise relatedness for admixed individuals
+Version: 0.14
+Date: 2014-12-15
+Author: Anders Albrechtsen and Ida Moltke
+Maintainer: Anders Albrechtsen <albrecht@binf.ku.dk>
+Description: pairwise relatedness for admixed individuals
+License: GPL
+Packaged: 2014-03-04 13:33:09 UTC; software
