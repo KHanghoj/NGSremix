@@ -388,10 +388,11 @@ typedef struct  { //pars used by relateHMM
   double **Q;
   double tol;
   double tolStop;
-  int nIter;
+  int maxIter;
   int useSq;
   int K;
   int nSites;
+  double likes;
 
 }myPars ;//pars used by relateHMM
  

@@ -29,6 +29,8 @@
 #include "extractors.h"
 #include "asort.h"
 #include "relateAdmix.h"
+#include "ibAdmix.cpp"
+
 using namespace std;
 
 pthread_t *threads = NULL;
@@ -39,6 +41,7 @@ int jobs;
 int *printArray;
 FILE *fp;
 int cunt;
+int doInbreeding =0;
 
 eachPars *allPars = NULL;
 
@@ -55,14 +58,17 @@ void *relateWrap(void *a){
   fprintf(stderr,"%d\n",i);
   fprintf(stderr,"%d\n",j);
   fprintf(stderr,"%d\n",pars->K);
-  fprintf(stderr,"%d\n",pars->nIter);
+  fprintf(stderr,"%d\n",pars->maxIter);
   fprintf(stderr,"%d\n",pars->useSq);
   fprintf(stderr,"%d\n",pars->data->matrix[i][0]);
  fprintf(stderr,"%d\n",pars->data->matrix[j][0]);
  fprintf(stderr,"%f\n",pars->Q[j][0]);
 fprintf(stderr,"%f\n",p->start[0]);
   */
-  relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->nIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol);
+  if(doInbreeding==0)
+  relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol);
+  else
+    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
   p->numIter=numIt;
   return NULL;
 }
@@ -79,7 +85,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
   char buf[lens];
   for(int i=0;i<x;i++){
     if(NULL==gzgets(fp,buf,lens)){
- 	fprintf(stderr,"Error: Only %d sites in frequency file\n",i);
+ 	fprintf(stderr,"Error: Only %d sites in frequency file (maybe increase buffer)\n",i);
 	exit(0);
     }
     if(neg)
@@ -176,7 +182,8 @@ void info(){
   fprintf(stderr,"\t-o name of the output file\n"); 
 
   fprintf(stderr,"Setup:\n"); 
-  fprintf(stderr,"\t-P Number of threads\n"); 
+  fprintf(stderr,"\t-P Number of threads\n");
+  fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
 
 
 
@@ -201,7 +208,7 @@ void *functionC(void *a) //the a means nothing
     int i=p.ind1;
     int j=p.ind2;
     int numIt=0;
-    relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->nIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+    relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
     p.numIter=numIt;
     p.numI[0]=numIt;
     
@@ -277,6 +284,9 @@ int main(int argc, char *argv[]){
     if (strcmp(argv[argPos],"-o")==0){
       outname  = argv[argPos+1]; 
     }
+    else if (strcmp(argv[argPos],"-F")==0)
+      doInbreeding = atoi(argv[argPos+1]); 
+
     else if (strcmp(argv[argPos],"-a")==0){
       autosomeMax = atoi(argv[argPos+1])+1; 
     }
@@ -366,16 +376,24 @@ int main(int argc, char *argv[]){
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
   double tolStop=0.000001;
-  int nIter=500;
+  int maxIter=5000;
   int useSq=1;
-  int numIter=400;
+  int numIter=4000;
   double tol=0.0001;
   
 
 
 
+  if(doInbreeding){
+    fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
 
-fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
+    if(nThreads!=1){
+    fprintf(stdout,"Threading not implemented for inbreeding\n");
+    nThreads=1;
+    }
+  }
+  else
+    fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
 
   //fun begins
  if(nThreads==1){// no threads
@@ -383,14 +401,26 @@ fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
     
     fprintf(stderr,"running i1:0 i2:0");  
     for(int i=1;i<nInd-1;i++){
-      for(int j=i+1;j<nInd;j++){
-	start[0]=0.7;
-	start[1]=0.2;
-	start[2]=0.1;
-	fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);  
-	relateAdmix(tolStop,nSites,K,nIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-	fprintf(fp,"%d\t%d\t%f\t%f\t%f\tnIter=%d\n",i,j,start[0],start[1],start[2],numIter);
+      
+      if(doInbreeding){
+	fprintf(stderr,"\rrunning i1:%d",i);
+	start[0] <- 0.02;
+	double llh=0;
+	
+	ibAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data,pars->Q,start,pars->F,tol,i,llh);
+	fprintf(fp,"%d\t%f\t%f\t nIter=%d\n",i,start[0],llh,numIter);
+
       }
+      else
+	for(int j=i+1;j<nInd;j++){
+	  start[0]=0.7;
+	  start[1]=0.2;
+	  start[2]=0.1;
+	  fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
+
+	  relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+	  fprintf(fp,"%d\t%d\t%f\t%f\t%f\tmaxIter=%d\n",i,j,start[0],start[1],start[2],numIter);
+	}
     }
     delete[] start;
   }
@@ -400,10 +430,10 @@ fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
     if(totNum%nThreads)
       nLoop++;
 
-
+ 
     //    fprintf(stderr,"totNum %d\tnLoop %d\n",totNum,nLoop);
     allPars = new eachPars[nThreads];
-    pars->nIter=nIter;
+    pars->maxIter=maxIter;
     pars->tol=tol;
     pars->tolStop=tolStop;
     pars->K=K;
@@ -479,7 +509,7 @@ else{ // with threads
   jobs =  nInd*(nInd-1)/2;
   cunt = 0;
   allPars = new eachPars[NumJobs];
-  pars->nIter=nIter;
+  pars->maxIter=maxIter;
   pars->tol=tol;
   pars->tolStop=tolStop;
   pars->K=K;
