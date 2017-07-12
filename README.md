@@ -27,7 +27,7 @@ type
 cd relateAdmix/scr
 mv CPP_Makefile Makefile
 make
-
+```
 ### R package without devtools
 
 If you do not have the devtools package (and dont want to install it) then you will have to build the R package 
