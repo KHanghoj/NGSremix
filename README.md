@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/aalbrechtsen/relateAdmix.svg?branch=master)](https://travis-ci.org/aalbrechtsen/relateAdmix)
+
 # relateAdmix
 Estimating relatedness coefficients from admixed populations
 
