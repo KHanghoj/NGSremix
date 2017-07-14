@@ -29,7 +29,7 @@
 #include "extractors.h"
 #include "asort.h"
 #include "relateAdmix.h"
-#include "ibAdmix.cpp"
+#include "ibAdmix.h"
 
 using namespace std;
 
