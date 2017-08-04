@@ -23,8 +23,11 @@ alloc.o : alloc.h alloc.cpp types.h
 relateAdmix.o : relateAdmix.h relateAdmix.cpp
 	$(CC) -c relateAdmix.cpp ${FLAGS}
 
-Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o
-	$(CXX)  -o relateAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ${FLAGS} -lz -lpthread 
+ibAdmix.o : ibAdmix.h ibAdmix.cpp
+	$(CC) -c ibAdmix.cpp ${FLAGS}
+
+Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o
+	$(CXX)  -o relateAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o ${FLAGS} -lz -lpthread 
 
 clean :
 	rm -f *.o relateAdmix
