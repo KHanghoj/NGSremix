@@ -384,34 +384,37 @@ int main(int argc, char *argv[]){
 
 
 
-  if(doInbreeding){
-    fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
-
-    if(nThreads!=1){
-    fprintf(stdout,"Threading not implemented for inbreeding\n");
-    nThreads=1;
-    }
-  }
-  else
+  if(!doInbreeding)
     fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
 
-  //fun begins
- if(nThreads==1){// no threads
-    double *start=new double[3];
-    
-    fprintf(stderr,"running i1:0 i2:0");  
-    for(int i=1;i<nInd-1;i++){
-      
-      if(doInbreeding){
+
+
+  if(doInbreeding){//inbreeding
+  fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
+
+  if(nThreads!=1){
+    fprintf(stdout,"Threading not implemented for inbreeding\n");
+    nThreads=1;
+  }
+  
+  double *start=new double[3];
+  for(int i=0;i<nInd;i++){
 	fprintf(stderr,"\rrunning i1:%d",i);
 	start[0] <- 0.02;
 	double llh=0;
 	
 	ibAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data,pars->Q,start,pars->F,tol,i,llh);
-	fprintf(fp,"%d\t%f\t%f\t nIter=%d\n",i,start[0],llh,numIter);
-
-      }
-      else
+	fprintf(fp,"%d\t%f\t%f\t %d\n",i,start[0],llh,numIter);
+   }
+ }// done with inbreeding
+ else if(nThreads==1){// no threads
+    double *start=new double[3];
+    
+    fprintf(stderr,"running i1:0 i2:0");  
+    for(int i=1;i<nInd-1;i++){
+      
+      
+      
 	for(int j=i+1;j<nInd;j++){
 	  start[0]=0.7;
 	  start[1]=0.2;
@@ -561,18 +564,21 @@ else{ // with threads
   delete[] indMatrix;
  }
 
-  fprintf(stderr,"\n");
-for(int j = 0; j < nSites; j++) 
-    delete[] F[j];
-  delete[] F;
+
+
+// clean
+ fprintf(stderr,"\n");
+ for(int j = 0; j < nSites; j++) 
+   delete[] F[j];
+ delete[] F;
   
-  for(int i = 0; i < nInd; i++)
-    delete [] Q[i];
-  delete[] Q;
-
-  fclose(fp);
-  delete[] allPars;
-
+ for(int i = 0; i < nInd; i++)
+   delete [] Q[i];
+ delete[] Q;
+ 
+ fclose(fp);
+ delete[] allPars;
+ 
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
   fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
