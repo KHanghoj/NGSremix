@@ -263,7 +263,7 @@ int main(int argc, char *argv[]){
    return 0;
  }
 
-
+  int useSq=1;
  const char *outname = "output.k";
   int autosomeMax = 23;
   string geno= "";
@@ -276,7 +276,7 @@ int main(int argc, char *argv[]){
   bArray *plinkKeep = NULL; //added in 0.97;
   const char* fname = NULL;
   const char* qname = NULL;
-
+  
 
   //parse arguments
   int argPos=1;
@@ -286,7 +286,8 @@ int main(int argc, char *argv[]){
     }
     else if (strcmp(argv[argPos],"-F")==0)
       doInbreeding = atoi(argv[argPos+1]); 
-
+    else if (strcmp(argv[argPos],"-accel")==0)
+      useSq = atoi(argv[argPos+1]); 
     else if (strcmp(argv[argPos],"-a")==0){
       autosomeMax = atoi(argv[argPos+1])+1; 
     }
@@ -377,7 +378,7 @@ int main(int argc, char *argv[]){
   readDoubleGZ(F,nSites,K,fname,1);
   double tolStop=0.000001;
   int maxIter=5000;
-  int useSq=1;
+
   int numIter=4000;
   double tol=0.0001;
   
