@@ -184,6 +184,7 @@ void info(){
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
+  fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
 
 
@@ -403,17 +404,32 @@ int main(int argc, char *argv[]){
   
   myPars *pars =  new myPars();
   plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
-  printf("\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
+  fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
+  fprintf(stdout,"\t-> reading genotypes ");
+  fflush(stdout);
   iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
-  if(tmp->x==plinkKeep->numTrue)
-      pars->data = tmp;
-    else{
-      pars->data = extractOK(plinkKeep,tmp);
-      killMatrix(tmp);
-    }
-    killArray(plinkKeep);
-    mysort(pars,0);
+  fprintf(stdout," - done \n");
+  fflush(stdout);
+  if(tmp->y==plinkKeep->numTrue){
+    
+    pars->data = tmp;
+  }
+  else{
+    fprintf(stdout,"\t-> extractOK (%d %d) ",tmp->x,plinkKeep->numTrue);
+    fflush(stdout);
+    
+    pars->data = extractOK(plinkKeep,tmp);
+    killMatrix(tmp);
+    fprintf(stdout," - done \n");
+    fflush(stdout);
 
+  }
+  killArray(plinkKeep);
+  fprintf(stdout,"\t-> sorting ");
+  fflush(stdout);
+  mysort(pars,0);
+  fprintf(stdout," - done \n");
+  fflush(stdout);
     // printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
   if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
     printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
@@ -451,7 +467,7 @@ int main(int argc, char *argv[]){
 
 
   if(doInbreeding){//inbreeding
-    fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
+    fprintf(fp,"ind\tF\tllh\t\tnIter\n");
 
     
     if(nThreads==1){

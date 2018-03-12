@@ -197,7 +197,7 @@ double newFaccell(int nSites,int *g,double **prod,double F,int nInformativeSites
   double F5=newF(nSites,g,prod,F3,nInformativeSites,llh);
   //fprintf(stdout,"F2=%f\tF3=%f\tF5=%f\t llh2=%f\tllh3=%f\talpha %f\n",F2,F3,F5,llhOld,llh,alpha);
   if(llh-llhOld< -tole*1.1){
-    fprintf(stdout,"no accell\n");
+    //    fprintf(stdout,"no accell\n");
     llh=llhOld;
     return(F2);
 
