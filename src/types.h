@@ -406,5 +406,6 @@ typedef struct  { //pars used by relateHMM
   double *start;
   int numIter;
   int *numI;
+  double llh;
 }eachPars ;//pars used by relateHMM
  

@@ -5,14 +5,9 @@
 #include "types.h"
 #endif
 #include "kmin.h"
+#include "ibAdmix.h"
 
 
-
-//global mess for accell
-double alpha;
-int stepMax = 1;
-int mstep = 4;
-int stepMin = 1;
 
 
 //genos[indvidual][sites]
@@ -158,70 +153,90 @@ double newF(int nSites,int *g,double **prod,double F,int nInformativeSites,doubl
 
 
 
-double newFaccell(int nSites,int *g,double **prod,double F,int nInformativeSites,double &llh,double tole){
+double newFaccell(int nSites,int *g,double **prod,double F,int nInformativeSites,double &llh, EMoptions *emO){
 
 
-
- llh=0;
- // first EM step
- double F0 = F;
- double F1 = newF(nSites,g,prod,F0,nInformativeSites,llh);
- double F2 = newF(nSites,g,prod,F1,nInformativeSites,llh);
- double llhOld = llh;
- double sr2=0;
- double sq2=0;
- double sv2=0;
-   
- double q1 = F1-F0;
- double q2 = F2-F1;
- sr2=q1*q1;
- sq2=q2*q2;
- sv2=(q2-q1)*(q2-q1);
+  double alpha=emO->alpha;
+  int stepMax = emO->stepMax;
+  int mstep = emO->mstep;
+  int stepMin = emO->stepMin;
+  double tole = emO->tolStop; 
+  llh=0;
+  // first EM step
+  double F0 = F;
+  double F1 = newF(nSites,g,prod,F0,nInformativeSites,llh);
+  double F2 = newF(nSites,g,prod,F1,nInformativeSites,llh);
+  double llhOld = llh;
+  double sr2=0;
+  double sq2=0;
+  double sv2=0;
+  
+  double q1 = F1-F0;
+  double q2 = F2-F1;
+  sr2=q1*q1;
+  sq2=q2*q2;
+  sv2=(q2-q1)*(q2-q1);
  
  
        
- //calc alpha and map into [1,stepMax] if needed
- alpha = sqrt(sr2/sv2);
- if(alpha>stepMax)
-   alpha=stepMax;
- if(alpha<1)
-   alpha=1;
-
- //the magical step
- double F3 = F0 + 2 * alpha * q1 + alpha*alpha * (q2 - q1);
-
+  //calc alpha and map into [1,stepMax] if needed
+  alpha = sqrt(sr2/sv2);
+  // fprintf(stdout,"alpha %f, stepmax %d\n",alpha,stepMax);
+  if(alpha>stepMax)
+    alpha=stepMax;
+  if(alpha<1)
+    alpha=1;
+  
+  //the magical step
+  double F3 = F0 + 2 * alpha * q1 + alpha*alpha * (q2 - q1);
+  
  
- if(F3<0.0001 | F3 > 1-0.0001)
-   F3=F2;
+  if(F3<0.0001 | F3 > 1-0.0001)
+    F3=F2;
 
- double F5=newF(nSites,g,prod,F3,nInformativeSites,llh);
- //fprintf(stdout,"F2=%f\tF3=%f\tF5=%f\t llh2=%f\tllh3=%f\talpha %f\n",F2,F3,F5,llhOld,llh,alpha);
- if(llh-llhOld< -tole*1.1){
-   //fprintf(stdout,"no accell\n");
-   llh=llhOld;
-   return(F2);
+  double F5=newF(nSites,g,prod,F3,nInformativeSites,llh);
+  //fprintf(stdout,"F2=%f\tF3=%f\tF5=%f\t llh2=%f\tllh3=%f\talpha %f\n",F2,F3,F5,llhOld,llh,alpha);
+  if(llh-llhOld< -tole*1.1){
+    fprintf(stdout,"no accell\n");
+    llh=llhOld;
+    return(F2);
 
- }
- //change step size
- if (alpha == stepMax) 
-   stepMax = mstep * stepMax;
+  }
+  //change step size
+  if (alpha == stepMax) 
+    stepMax = mstep * stepMax;
+  
+  emO->alpha = alpha;
+  emO->stepMax = stepMax;
 
+
+  
   
   return F5;
 }
 
 double ibAdmixEM(int nSites,int *g,double **prod,double *in,int& nIter,double tolStop,int nInformativeSites,double *diff,int maxIter,int useSq){
   //  fprintf(stderr,"[%s] nsites:%d F:%f maxIter:%d tole:%f nInformativeSites:%d\n",__FUNCTION__,nSites,*in,maxIter,tole,nInformativeSites);
+
+
+
+  EMoptions *emO =  new EMoptions;
+
+
+  emO-> alpha=0;
+ emO-> stepMax=1;
+ emO-> mstep=4;
+ emO-> stepMin=1;
+ emO->tolStop=tolStop;
+ 
   double F = in[0];
-  
   double llhOld = log(0);//-Inf
-  
   double llh;
   int i=0;
   for(i=0;i<maxIter;i++){
 
     if(useSq)
-      F = newFaccell(nSites,g,prod,F,nInformativeSites,llh,tolStop);
+      F = newFaccell(nSites,g,prod,F,nInformativeSites,llh,emO);
     else
       F = newF(nSites,g,prod,F,nInformativeSites,llh);
     *diff = fabs(llh-llhOld);
@@ -238,6 +253,7 @@ double ibAdmixEM(int nSites,int *g,double **prod,double *in,int& nIter,double to
   nIter=i;
   //  fprintf(stderr,"nIter:%d %d \n",nIter,maxIter);
   in[0] = F;
+  delete emO;
   return llhOld;
 }
 
@@ -285,61 +301,9 @@ void ibAdmix( double tolStop,int nSites,int K,int maxIter,int useSq,int& numIter
   }
   
   llh=top;
-  //  fprintf(stdout,"%d\t%f\t%f\t%f\t%d\t%d\n",i,start[0],top,diff,numIter,nInformativeSites);
+  //  fprintf(stdout,"%d\t%f\t%f\t%d\t%d\n",i,start[0],llh,numIter,nInformativeSites);
   //fflush(stdout);
     
 
 
 }
-
-
-
-double ibAdmixEMold(int nSites,int *g,double **prod,double *in,int& nIter,double tole,int nInformativeSites,double *diff,int maxIter){
-  //  fprintf(stderr,"[%s] nsites:%d F:%f maxIter:%d tole:%f nInformativeSites:%d\n",__FUNCTION__,nSites,*in,maxIter,tole,nInformativeSites);
-  double F = in[0];
-  
-  double llhOld = log(0);//-Inf
-  double newF;
-  double llh;
-  int i=0;
-  for(i=0;i<maxIter;i++){
-    llh =0;
-    newF =0;
-    for(int s=0;s<nSites;s++){
-      double llhSite;
-      double Fsite=0;
-      if(g[s]==0){
-	llhSite = prod[s][2]*(1-F)+prod[s][0]*F;
-	Fsite = prod[s][0]*F;
-      }else if(g[s]==1)
-	llhSite = 2*prod[s][0]*prod[s][1]*(1-F);
-      else if(g[s]==2){
-	llhSite = prod[s][3]*(1-F)+prod[s][1]*F;
-	Fsite = prod[s][1]*F;
-      }else{
-	//fprintf(stderr,"Problem with range of genotype: %d\n",g[s]);
-      }
-      llh += log(llhSite);
-      //      fprintf(stderr,"Fsite/llhSite:%f\n",Fsite/llhSite);
-      newF += Fsite/llhSite;
-    }
-
-    F = newF/nInformativeSites;
-    *diff = fabs(llh-llhOld);
-    //fprintf(stderr,"res[%d]:F=%f llh:%f diff:%f\n",i,F,llh,llh-llhOld);
-    if(*diff<tole){
-      //fprintf(stderr,"breaking: diff:%f \n",*diff);
-      llhOld = llh;
-      break;
-    }
-    
-    llhOld = llh;
-
-  }
-  nIter=i;
-  //  fprintf(stderr,"nIter:%d %d \n",nIter,maxIter);
-  in[0] = F;
-  return llhOld;
-}
-
-

@@ -65,10 +65,10 @@ void *relateWrap(void *a){
  fprintf(stderr,"%f\n",pars->Q[j][0]);
 fprintf(stderr,"%f\n",p->start[0]);
   */
-  if(doInbreeding==0)
+  //if(doInbreeding==0)
   relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol);
-  else
-    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
+  //  else
+  //    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
   p->numIter=numIt;
   return NULL;
 }
@@ -237,6 +237,66 @@ void *functionC(void *a) //the a means nothing
   return NULL;
 }
 
+
+
+
+void *functionIBadmix(void *a) //the a means nothing
+{
+  int running_job;
+
+  pthread_mutex_lock(&mutex1);
+  
+  while (jobs > 0) {
+    running_job = jobs--;
+    pthread_mutex_unlock(&mutex1);
+
+    ////////////////////////////////////////////// not protected
+    int c = NumJobs-running_job;
+    eachPars p=allPars[c];
+    myPars *pars=p.pars;
+    int i=p.ind1;
+    int j=p.ind2;
+    int numIt=0;
+    double llh=0;
+      
+    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p.start,pars->F,pars->tol,i,llh);
+    //relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+
+	
+    
+    p.numIter=numIt;
+    p.numI[0]=numIt;
+    p.llh=llh;
+    p.start[1]=llh;
+    //fprintf(stdout,"## %d\t%f\t%f\t %d\t %d\n",i,p.start[0],p.llh,p.numI[0],p.numIter);
+    //////////////////////////////////////////////
+
+    pthread_mutex_lock(&mutex1);
+
+    int d = NumJobs-running_job;
+    printArray[d]=1;
+    if(d%50==0)
+      fprintf(stderr,"\rrunning i1:%d llh:%f",allPars[d].ind1,allPars[d].start[1]);  
+
+    while(cunt<NumJobs){
+    
+      if(printArray[cunt]==0)
+	break;
+
+      fprintf(fp,"%d\t%f\t%f\t%d\n",allPars[cunt].ind1, allPars[cunt].start[0], allPars[cunt].start[1], allPars[cunt].numI[0]);
+      //fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0],cunt);
+        cunt++;
+    }
+
+  }
+  pthread_mutex_unlock(&mutex1);
+
+  return NULL;
+}
+
+
+
+
 void fex(const char* fileName){
   const char*delims=" \n";
   FILE *fp = NULL;
@@ -249,22 +309,27 @@ void fex(const char* fileName){
 
 
 int main(int argc, char *argv[]){
- clock_t t=clock();//how long time does the run take
- time_t t2=time(NULL);
-
- // print commandline
- for(int i=0;i<argc;i++)
-   printf("%s ",argv[i]);
- printf("\n");
-
- // if not arguments are given print information
- if(argc==1){
-   info();
-   return 0;
+  clock_t t=clock();//how long time does the run take
+  time_t t2=time(NULL);
+  
+  // print commandline
+  for(int i=0;i<argc;i++)
+    printf("%s ",argv[i]);
+  printf("\n");
+  
+  // if not arguments are given print information
+  if(argc==1){
+    info();
+    return 0;
  }
-
+  
   int useSq=1;
- const char *outname = "output.k";
+  double tolStop=0.000001;
+  int maxIter=5000;
+  
+  int numIter=4000;
+  double tol=0.0001;
+  const char *outname = "output.k";
   int autosomeMax = 23;
   string geno= "";
   string pos = "";
@@ -330,12 +395,12 @@ int main(int argc, char *argv[]){
   fex(qname);
   fex(fname);
  
-
-  //read plink
+  //////////////////////////////////////////////////
+  //read plink data
   printf("\t-> Will assume these are the plink files:\n\t\tbed: %s\n\t\tbim: %s\n\t\tfam: %s\n",plink_bed.c_str(),plink_bim.c_str(),plink_fam.c_str());
   int numInds = numberOfLines(plink_fam.c_str())-1;//the number of individuals is just the number of lines
 
-
+  
   myPars *pars =  new myPars();
   plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
   printf("\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
@@ -355,20 +420,19 @@ int main(int argc, char *argv[]){
     printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
     return 0;
   }
-
-
-
-
-
-
-
-
   int K=getK(qname);
-  
   int nSites=pars->data->y;
   int nInd=pars->data->x;
   fprintf(stderr,"\t\t->K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
+  pars->maxIter=maxIter;
+  pars->tol=tol;
+  pars->tolStop=tolStop;
+  pars->K=K;
+  pars->nSites=nSites;
+  pars->useSq=useSq;
 
+
+  
   fp=fopen(outname,"w");
   double **F =allocDouble(nSites,K);
   double **Q =allocDouble(nInd,K);
@@ -376,12 +440,8 @@ int main(int argc, char *argv[]){
   pars->Q=Q;
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
-  double tolStop=0.000001;
-  int maxIter=5000;
 
-  int numIter=4000;
-  double tol=0.0001;
-  
+  ///////// print header
 
 
 
@@ -391,58 +451,28 @@ int main(int argc, char *argv[]){
 
 
   if(doInbreeding){//inbreeding
-  fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
+    fprintf(fp,"ind\tF\tllh\tdiff\tnIter\n");
 
-  if(nThreads!=1){
-    fprintf(stdout,"Threading not implemented for inbreeding\n");
-    nThreads=1;
-  }
-  
-  double *start=new double[3];
-  for(int i=0;i<nInd;i++){
+    
+    if(nThreads==1){
+      double *start=new double[3];
+      for(int i=0;i<nInd;i++){
 	fprintf(stderr,"\rrunning i1:%d",i);
 	start[0] <- 0.02;
 	double llh=0;
-	
+      
 	ibAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data,pars->Q,start,pars->F,tol,i,llh);
-	fprintf(fp,"%d\t%f\t%f\t %d\n",i,start[0],llh,numIter);
-   }
- }// done with inbreeding
- else if(nThreads==1){// no threads
-    double *start=new double[3];
-    
-    fprintf(stderr,"running i1:0 i2:0");  
-    for(int i=1;i<nInd-1;i++){
-      
-      
-      
-	for(int j=i+1;j<nInd;j++){
-	  start[0]=0.7;
-	  start[1]=0.2;
-	  start[2]=0.1;
-	  fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
-
-	  relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-	  fprintf(fp,"%d\t%d\t%f\t%f\t%f\tmaxIter=%d\n",i,j,start[0],start[1],start[2],numIter);
-	}
+	fprintf(fp,"%d\t%f\t%f\t%d\n",i,start[0],llh,numIter);
+      }
     }
-    delete[] start;
-  }
- else if(0){ // with threads
-    int totNum = nInd*(nInd-1)/2;
-    int nLoop=(int)(totNum/nThreads);
-    if(totNum%nThreads)
-      nLoop++;
+    else{
 
- 
-    //    fprintf(stderr,"totNum %d\tnLoop %d\n",totNum,nLoop);
-    allPars = new eachPars[nThreads];
-    pars->maxIter=maxIter;
-    pars->tol=tol;
-    pars->tolStop=tolStop;
-    pars->K=K;
-    pars->nSites=nSites;
-    pars->useSq=useSq;
+      NumJobs = nInd;
+      jobs =  nInd;
+      cunt = 0;
+      allPars = new eachPars[NumJobs];
+
+      /*
     int *indMatrix = new int[nInd*(nInd-1)];
     int cunter=0;
     for(int i=0;i<nInd-1;i++){
@@ -452,113 +482,108 @@ int main(int argc, char *argv[]){
 	cunter++;
       }
     }
-    pthread_t threads[nThreads];
-
-    int cunt=0;
-    int rc;
-    for(int nl=0;nl<nLoop;nl++){
-      for(int c=0;c<nThreads;c++){//prep
-	if(cunt+c>=totNum)
-	  break;
-
-	//	fprintf(stdout,"cunt %d, c %d, totNum %d\n",cunt,c,totNum);
-	double *start=new double[3];
-	start[0]=0.7;
-	start[1]=0.2;
-	start[2]=0.1;
-	int i=indMatrix[(cunt+c)*2];
-	int j=indMatrix[(cunt+c)*2+1];
-
-	eachPars *temp = new eachPars;
+      */
+      printArray=new int[NumJobs];
+      for(int c=0;c<NumJobs;c++){
+	printArray[c]=0;
+    
+	double *start=new double[1];
+	int *numI=new int[1];
+	start[0]=0.01;
+	int i=c;
+	int j=0;
+      
 	allPars[c].start=start;
 	allPars[c].ind1=i;
 	allPars[c].ind2=j;
 	allPars[c].numIter=0;
+	allPars[c].numI=numI;
 	allPars[c].pars=pars;
-	//fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
-	fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);  
-
-      }
-      for(int c=0;c<nThreads;c++){//run
-	if(cunt+c>=totNum)
-	  break;
-	rc = pthread_create(&threads[c], NULL, relateWrap, &allPars[c]);
-	assert(0 == rc);
-      }
-
-
-      for(int c=0;c<nThreads;c++){//join
-	if(cunt+c>=totNum)
-	  break;
- 	rc = pthread_join(threads[c], NULL);
-	assert(0 == rc);
-     }
-
-
-      for(int c=0;c<nThreads;c++){//print
-	if(cunt+c>=totNum)
-	  break;
-	fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numIter);
-      }
-
-      cunt+=nThreads;
- 
+      
     }
-    delete[] indMatrix;
-  }
-else{ // with threads
-
-
-  NumJobs = nInd*(nInd-1)/2;
-  jobs =  nInd*(nInd-1)/2;
-  cunt = 0;
-  allPars = new eachPars[NumJobs];
-  pars->maxIter=maxIter;
-  pars->tol=tol;
-  pars->tolStop=tolStop;
-  pars->K=K;
-  pars->nSites=nSites;
-  pars->useSq=useSq;
-  int *indMatrix = new int[nInd*(nInd-1)];
-  int cunter=0;
-  for(int i=0;i<nInd-1;i++){
-    for(int j=i+1;j<nInd;j++){
-      indMatrix[cunter*2]=i;
-      indMatrix[cunter*2+1]=j;
-      cunter++;
-    }
-  }
-
-  printArray=new int[NumJobs];
-  for(int c=0;c<NumJobs;c++){
-    printArray[c]=0;
+    pthread_t thread1[nThreads];
     
-   double *start=new double[3];
-   int *numI=new int[1];
-    start[0]=0.7;
-    start[1]=0.2;
-    start[2]=0.1;
-    int i=indMatrix[c*2];
-    int j=indMatrix[c*2+1];
-
-    allPars[c].start=start;
-    allPars[c].ind1=i;
-    allPars[c].ind2=j;
-    allPars[c].numIter=0;
-    allPars[c].numI=numI;
-    allPars[c].pars=pars;
-
-  }
-  pthread_t thread1[nThreads];
-
-  for (int i = 0; i < nThreads; i++)
-    pthread_create(&thread1[i], NULL, &functionC, NULL);
-
+    for (int i = 0; i < nThreads; i++)
+      pthread_create(&thread1[i], NULL, &functionIBadmix, NULL);
+    
   // Wait all threads to finish
-  for (int i = 0; i < nThreads; i++)
-    pthread_join(thread1[i], NULL);
+    for (int i = 0; i < nThreads; i++)
+      pthread_join(thread1[i], NULL);
+    
+    //  for (int c = 0; c < NumJobs; c++)
+  // fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numI[0]);
+  
 
-  //  for (int c = 0; c < NumJobs; c++)
+    //  delete[] indMatrix;
+
+
+
+    }
+  }// done with inbreeding
+  else if(nThreads==1){// relatedness no threads
+    double *start=new double[3];
+    fprintf(stderr,"running i1:0 i2:0");  
+    
+    for(int i=0;i<nInd-1;i++){
+      for(int j=i+1;j<nInd;j++){
+	start[0]=0.7;
+	start[1]=0.2;
+	  start[2]=0.1;
+	  fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
+	  
+	  relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+	  fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
+      }
+    }
+    delete[] start;
+  }
+  else{ // with threads (the cool way)
+
+    NumJobs = nInd*(nInd-1)/2;
+    jobs =  nInd*(nInd-1)/2;
+    cunt = 0;
+    allPars = new eachPars[NumJobs];
+
+    int *indMatrix = new int[nInd*(nInd-1)];
+    int cunter=0;
+    for(int i=0;i<nInd-1;i++){
+      for(int j=i+1;j<nInd;j++){
+	indMatrix[cunter*2]=i;
+	indMatrix[cunter*2+1]=j;
+	cunter++;
+      }
+    }
+
+    printArray=new int[NumJobs];
+    for(int c=0;c<NumJobs;c++){
+      printArray[c]=0;
+    
+      double *start=new double[3];
+      int *numI=new int[1];
+      start[0]=0.7;
+      start[1]=0.2;
+      start[2]=0.1;
+      int i=indMatrix[c*2];
+      int j=indMatrix[c*2+1];
+      
+      allPars[c].start=start;
+      allPars[c].ind1=i;
+      allPars[c].ind2=j;
+      allPars[c].numIter=0;
+      allPars[c].numI=numI;
+      allPars[c].pars=pars;
+      
+    }
+    pthread_t thread1[nThreads];
+    
+    for (int i = 0; i < nThreads; i++)
+      pthread_create(&thread1[i], NULL, &functionC, NULL);
+    
+  // Wait all threads to finish
+    for (int i = 0; i < nThreads; i++)
+      pthread_join(thread1[i], NULL);
+    
+    //  for (int c = 0; c < NumJobs; c++)
   // fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numI[0]);
   
 
