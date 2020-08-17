@@ -396,7 +396,9 @@ doProb<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
 
 
 
-NgsAdmixRelateEMoneStep<-function(Z,ppart,n=1,pprint=TRUE){
+NgsAdmixRelateEMoneStep<-function(par,ppart,n=1,pprint=TRUE){
+  print("I algo!!!!")
+  Z<-par
   ssum<-0
   count<-0
   npop<-length(ppart)
@@ -427,7 +429,7 @@ NgsAdmixRelateEMoneStep<-function(Z,ppart,n=1,pprint=TRUE){
   }
   logL<-sum(log(ssum))
   PP<-colSums(Ek/rowSums(Ek))/length(ppart)
-  x2<-c(PP[1],PP[2]+PP[3],PP[4],logL)
+  x2<-c(PP[1],PP[2]+PP[3],PP[4])#,logL)
   return(x2)
 }
 
@@ -498,35 +500,11 @@ NgsAdmixRelateEMOld<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
 #####Expectaion Maximization with SQUAREM
 #########################################
 
-
 NgsAdmixRelateSquareEM<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
-  
-  par<-c(initZ,NA)
-  flag<-0
-  
-  for(i in 1:maxit){
-    newPar<-NgsAdmixRelateEMoneStepOld(par[1:3],geno1,geno2,f,GL1,GL2,pprint=F)
-    
-    cat("Iteration:",i-1,"LogLike = ",newPar[4], "Z = ",par[1],par[2],par[3],"\n")
-    # Stop iteration if the difference between the current and new estimates is less than a tolerance level
-    
-    if(all(abs(par - newPar) < tol)){
-      flag <- 1 
-      cat("Congratulations the EM algorithm has converged! \n")
-      return(par)
-      break
-    }
-    
-    # Otherwise continue iteration
-    par <- newPar
-    
-  }
-  if(!flag){
-    warning("Didn't converge\n")
-    return(newPar)
-  } 
-  
-  # list(Z, logL)
+  initZ
+  ppart<-doProb(initZ,a1,a2,geno1,geno2,f,GL1,GL2,pprint=F)
+  newPar<-squarem(par=initZ,ppart=ppart,pprint=F,fixptfn=NgsAdmixRelateEMoneStep,control=list(maxiter=maxit,tol=tol))
+  return(newPar$par)
 }
 
 
@@ -613,12 +591,16 @@ NgsAdmixRelateEMOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
 #########################################
 library(SQUAREM)
 p0 <- c(runif(1),runif(2,0,6))
-tol<-1e-5
-pf2 <- fpiter(par=p0,a1=a1,a2=a2,geno1=geno[,1],geno2=geno[,2],f=f,GL1=like1, GL2=like2,pprint=T, fixptfn=NgsAdmixRelateEMoneStepOld, control=list(tol=tol))
-pf2
+tol<-1e-2
 
-pf1 <- squarem(par=p0,a1=a1,a2=a2,geno1=geno[,1],geno2=geno[,2],f=f,GL1=like1, GL2=like2,pprint=F, fixptfn=NgsAdmixRelateEMoneStepOld, control=list(tol=tol))
+
+ppart<-doProb(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,pprint=F)
+pf1 <- squarem(par=initZ,ppart=ppart, pprint=F, fixptfn=NgsAdmixRelateEMoneStep, control=list(tol=tol))
 pf1
+pf1$par
+
+NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+
 
 
 
