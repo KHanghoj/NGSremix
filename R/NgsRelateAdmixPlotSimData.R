@@ -613,3 +613,63 @@ NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,ppr
 NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
 NgsAdmixRelateEMOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
 
+
+
+#######################################################################################################
+##### Simulate and plot 100 pairs of siblings K=(0.25,0.5,0.25) from 3 populationer  with depth 25
+#######################################################################################################
+M<-100000 # No. of diallelic loci
+f1<-runif(M) #randomly sample an allele frequency from a uniform distribution between 0 and 1
+f2<-runif(M)
+f3<-runif(M)
+f<-cbind(f1,f2,f3)
+k2<-c(0.125,0.125,0) ### 25%:  IBD 2 fra population 1
+k1<-c(0.25,0.25,0) ### 50% : IBD 1 fra population 1.
+k0<-c(0.25,0.25,0)
+sum(k2+k1/2)
+a1<-k2+k1/2+k0# (Ancestry proportions) Q individ 1. 
+a2<-k2+k1/2+k0# (Ancestry proportions) Q individ 2. 
+depth <- 25 #mean depth
+error <- 0.005
+initZ<- c(0.2,0.4,0.4)#Initial values for the parameters to be optimized #ALGO virker ikke, hvis initZ=(0,0,0)
+maxit<-100
+tol<-1e-3
+N<-1 #No. of individuals
+
+a1<-c(1,0,0)#hvorfor kører den ikke? 
+a2<-c(1,0,0)
+allR<-EMforNsubjects(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N)
+
+#########################################
+#####EM for N subjects
+#########################################
+
+deptVec<-c(1,2,4,8,16,32)
+nameVec<-c()
+for(d in 1:length(deptVec)){
+  depth<-deptVec[d]
+  allR<-EMforNsubjects(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N)
+  nam <- paste("k1",k1[1],k1[2],k1[3],"_k2",k2[1],k2[2],k2[3],"_QA",a1[1],a1[2],a1[3],"_QB",a2[1],a2[2],a2[3],"_depth",depth,"_N",N, sep = "")
+  assign(nam, allR)
+  print(nam)
+  nameVec<-c(nameVec,nam)
+}
+
+plot(k10.500_k20.2500_QA100_QB100_depth25_N5[,2], k10.500_k20.2500_QA100_QB100_depth25_N5[,3], xlim=c(0,1),ylim=c(0,0.3),pch=20,xlab = "k1", ylab="k2", main=nam)
+
+
+#########################################
+#####EM for N subjects
+#########################################
+
+EMforNsubjects<-function(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N){
+  allR<-matrix(,nrow=N,ncol=3)
+  for(n in 1:N){
+    geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
+    like1<-getLikes(geno[,1], depth, error) #genotype likelihoods for individual 1
+    like2<-getLikes(geno[,2], depth, error)
+    R<-NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+    allR[n,]<-R
+  }
+  return(allR)
+}
