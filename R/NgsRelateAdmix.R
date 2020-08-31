@@ -12,8 +12,10 @@ simGeno<-function(k1,k2,a1,a2,f){
   K<-ncol(f) #No. of populations
   M<-nrow(f)
   # ancestral allele frequency weighted using the ancestry proportions for each individual.
-  F1<-f%*%norma(a1-k2-k1/2) #Individ 1 population allele frequencies. norma er en hjemmelavet function der normalicere vektore, så de summer til 1. (0.5 0.0 0.0) becomes (1.0 0.0 0.0)
-  F2<-f%*%norma(a2-k2-k1/2) #Individ 2 population allele frequencies
+  #F1<-f%*%norma(a1-k2-k1/2) #Individ 1 population allele frequencies. norma er en hjemmelavet function der normalicere vektore, så de summer til 1. (0.5 0.0 0.0) becomes (1.0 0.0 0.0)
+  #F2<-f%*%norma(a2-k2-k1/2) #Individ 2 population allele frequencies
+  F1<-f%*%norma(a1) #Individ 1 population allele frequencies. norma er en hjemmelavet function der normalicere vektore, så de summer til 1. (0.5 0.0 0.0) becomes (1.0 0.0 0.0)
+  F2<-f%*%norma(a2) #Individ 2 population allele frequencies
   
   ###two unrelated individuals haplotypes (the parents)
   #sampling the genotypes independently per site
@@ -27,7 +29,6 @@ simGeno<-function(k1,k2,a1,a2,f){
   #table(states)
   #    0     1     4 
   #24877 50274 24849
-  
   ###two siblings were simulated by randomly sampling alleles from the two parents.
   for(p in 1:K){
     #ibd=1
@@ -62,7 +63,7 @@ getLikes<-function(x,d=5,e=0.01,norm=FALSE){
 }
 
 ### Maximum likelihood
-NgsAdmixRelateML<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){ 
+NgsAdmixRelateML<-function(Z,a1,a2,f,GL1, GL2,n=1,pprint=TRUE){ 
   
   ssum<-0
   count<-0
@@ -85,87 +86,87 @@ NgsAdmixRelateML<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
             for(z2 in 0:1){ #hap2
               if(z2==1&a12!=a22)
                 next
-              for(g1 in 0:1){
-                for(g2 in 0:1){
+              for(g11 in 0:1){
+                for(g12 in 0:1){
+                  for(g21 in 0:1){
+                    for(g22 in 0:1){
                 
-                  count<-count+1
+                      count<-count+1
+                        
+                      #######################################
+                      ## probability of IBD given relatedness (P(Z=z|R))
+                      ########################################
+                      Pr<-Z[z1+z2+1]/2^(z1!=z2)
+                        
+                      ########################################
+                      ## probablity of ancestral proportions given IBD and Ancestry proportions (P(Aj=a|Zj=z, Q1, Q2))
+                      ########################################
+                        
+                      #if(k1==0 & k2 ==0)
+                      Pa<-a1[a11]*a1[a12]*a2[a21]*a2[a22] #tab2
+                      
+                      if(z1==1)
+                        Pa<-Pa/(sum(a1*a2))
+                      if(z2==1)
+                        Pa<-Pa/(sum(a1*a2))
+                        
+    
+                        
+                      ########################################
+                      ###probability of data given genotype (P(X|Gj=g1,g2))
+                      ########################################
+                      if(g11+g12==1){
+                        PGL1<-GL1[g11+g12+1,]/2
+                      }
+                      else{
+                        PGL1<-GL1[g11+g12+1,]
+                      }
+                      
+                      if(g21+g22==1){
+                        PGL2<-GL2[g21+g22+1,]/2
+                      }
+                      else{
+                        PGL2<-GL2[g21+g22+1,]
+                      }
+                        
+                      ########################################
+                      ###probability of genotypes given relatedness (P(G1j=g1, G2j=g2|Aj=a, Zj=z))
+                      ########################################
+                      ## probablity of data
+                      
+                      if(Pr==0)
+                        next
+                        
+          
+                      if(z1==1)
+                        P1<-ifelse(g11==g21,g21+(-1)^g21*f[,a11],0) 
+                     
+                      else     #ind1 hap1                    #ind2 hap1
+                        P1<-(g11+(-1)^g11*f[,a11]) * (g21+(-1)^g21*f[,a21])
+                       
+                        
+                      if(z2==1)
+                        P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
+                       
+                      else     #ind1 hap2                    #ind2 hap2
+                        P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
+                        
+                      mult<-1
+                      mult <- ifelse(g11!=g12 ,mult *2 ,mult)
+                      mult <- ifelse(g21!=g22 ,mult *2 ,mult)
+                      
+                      if(z1+z2 > 0)
+                        mult <- ifelse(g11!=g12 & g21!=g22,mult/2 ,mult)
+                        
+                        
+                      ppart<-Pa*Pr*P1*P2*mult*PGL1*PGL2
+                      ssum<-ssum+ppart
                     
-                  #######################################
-                  ## probability of IBD given relatedness (P(Z=z|R))
-                  ########################################
-                  Pr<-Z[z1+z2+1]/2^(z1!=z2)
-                    
-                  ########################################
-                  ## probablity of ancestral proportions given IBD and Ancestry proportions (P(Aj=a|Zj=z, Q1, Q2))
-                  ########################################
-                    
-                  #if(k1==0 & k2 ==0)
-                  Pa<-a1[a11]*a1[a12]*a2[a21]*a2[a22] #tab2
-                  
-                  if(z1==1)
-                    Pa<-Pa/(sum(a1*a2))
-                  if(z2==1)
-                    Pa<-Pa/(sum(a1*a2))
-                    
+                      if(pprint)
 
-                    
-                  ########################################
-                  ###probability of data given genotype (P(X|Gj=g1,g2))
-                  ########################################
-                  if(g1+g2==1){
-                    PGL1<-GL1[g1+g2+1,]/2
-                    PGL2<-GL2[g1+g2+1,]/2
+                      cat(count,"a:",a11,a12,a21,a22,"Z:",z1,z2,"G1:",g1,g2,"Pa=",Pa,"Pr=",Pr,"PGL1=",PGL1[n],"PGL2=",PGL2[n],"sum=",ssum[n],"ppart=",ppart[n],"P1*P2=",P1[n]*P2[n]*mult[n],"mult",mult[n],"\n")
+                    }
                   }
-                  else{
-                    PGL1<-GL1[g1+g2+1,]
-                    PGL2<-GL2[g1+g2+1,]
-                  }
-                    
-                  ########################################
-                  ###probability of genotypes given relatedness (P(G1j=g1, G2j=g2|Aj=a, Zj=z))
-                  ########################################
-                  ## probablity of data
-                  
-                  if(Pr==0)
-                    next
-                  
-                  g11<-ifelse(geno1<1,1,0)   ##vector med 0 hvor geno<1 ellers 1 ## tænker det er det samme som: return(cbind(hap11,hap12,hap21,hap22))
-                  g12<-ifelse(geno1<2,1,0)   ##vector med 1 hvor geno<2 ellers 1
-                  g21<-ifelse(geno2<1,1,0)
-                  g22<-ifelse(geno2<2,1,0)
-                    
-      
-                  if(z1==1)
-                    P1<-ifelse(g11==g21,g21+(-1)^g21*f[,a11],0) 
-                     #forstår den ikke, den vil altid give 0? 
-                     #hvorfor er f den samme for de to alleler 
-                 
-                  else     #ind1 hap1                    #ind2 hap1
-                    P1<-(g11+(-1)^g11*f[,a11]) * (g21+(-1)^g21*f[,a21])
-                   
-                    
-                  if(z2==1)
-                    P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
-                   
-                  else     #ind1 hap2                    #ind2 hap2
-                    P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
-                    
-                  ###
-                  #            mult <- ifelse(geno1==geno2,1,2)
-                  mult<-1
-                  mult <- ifelse(geno1==1 ,mult *2 ,mult)
-                  mult <- ifelse(geno2==1 ,mult *2 ,mult)
-                  
-                  if(z1+z2 > 0)
-                    mult <- ifelse(geno1==1 & geno2==1,mult/2 ,mult)
-                    
-                    
-                  ppart<-Pa*Pr*P1*P2*mult*PGL1*PGL2
-                  ssum<-ssum+ppart
-                
-                  if(pprint)
-
-                    cat(count,"a:",a11,a12,a21,a22,"Z:",z1,z2,"G:",g1,g2,"Pa=",Pa,"Pr=",Pr,"PGL1=",PGL1[n],"PGL2=",PGL2[n],"sum=",ssum[n],"ppart=",ppart[n],"P1*P2=",P1[n]*P2[n]*mult[n],"geno:",geno1[n],geno2[n],"mult",mult[n],"\n")
                 }
               }
             }
@@ -181,12 +182,13 @@ NgsAdmixRelateML<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
 ################################################################
 #####Old version which calculate all probabilities in each loop of a EM step
 ################################################################
-NgsAdmixRelateEMoneStepOld<-function(par,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
+NgsAdmixRelateEMoneStepOld<-function(par,a1,a2,f,GL1, GL2,n=1,pprint=TRUE){
   Z<-par
   ssum<-0
   count<-0
+  site<-0
   npop<-length(a1)
-  Ek <- matrix(0,ncol=4,nrow=length(geno1))
+  Ek <- matrix(0,ncol=4,nrow=length(f[,1]))
   
   for(a11 in 1:npop){
     if(a1[a11]==0)
@@ -206,78 +208,93 @@ NgsAdmixRelateEMoneStepOld<-function(par,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint
             for(z2 in 0:1){ 
               if(z2==1&a12!=a22)
                 next
-              for(g1 in 0:1){
-                for(g2 in 0:1){
+              for(g11 in 0:1){
+                for(g12 in 0:1){
+                  for(g21 in 0:1){
+                    if(z1==1&g11!=g21)
+                      next
+                    for(g22 in 0:1){
+                      if(z2==1&g12!=g22)
+                        next
+                      
                   
-                  count<-count+1
+                    count<-count+1
+                    
+                    #######################################
+                    ## probability of IBD given relatedness (P(Z=z|R))
+                    ########################################
+                    Pz<-Z[z1+z2+1]/2^(z1!=z2)
+                    
+                    if(Pz==0)
+                      next
+                    
+                    ########################################
+                    ## probablity of ancestral proportions given IBD and Ancestry proportions (P(Aj=a|Zj=z, Q1, Q2)) tabel 2
+                    ########################################
+                    Pa<-a1[a11]*a1[a12]*a2[a21]*a2[a22]
+                    
+                    if(z1==1)
+                      Pa<-Pa/(sum(a1*a2))
+                    if(z2==1)
+                      Pa<-Pa/(sum(a1*a2))
+                    
+                    ########################################
+                    ###probability of data given genotype (P(X|Gj=g1,g2))
+                    ########################################
+                    if(g11+g12==1){
+                      PGL1<-GL1[g11+g12+1,]/2
+                    }
+                    else{
+                      PGL1<-GL1[g11+g12+1,]
+                    }
+                    
+                    if(g21+g22==1){
+                      PGL2<-GL2[g21+g22+1,]/2
+                    }
+                    else{
+                      PGL2<-GL2[g21+g22+1,]
+                    }
+                    
+                    ########################################
+                    ###probability of genotypes given relatedness (P(G1j=g1, G2j=g2|Aj=a, Zj=z)) tabel 1
+                    ########################################
+                    
+                    
+                    if(z1==1)
+                      P1<-ifelse(g11==g21,g21+(-1)^g21*f[,a11],0)
+                    else     #ind1 hap1                    #ind2 hap1
+                      P1<-(g11+(-1)^g11*f[,a11]) * (g21+(-1)^g21*f[,a21])
+                    
+                    if(z2==1)
+                      P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
+                    else     #ind1 hap2                    #ind2 hap2
+                      P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
+                   
+                    #browser()
+                    #mult<-1
+                    #mult <- ifelse(geno1==1 ,mult *2 ,mult)
+                    #mult <- ifelse(geno2==1 ,mult *2 ,mult)
+                    
+                    #if(z1+z2 > 0)
+                    #  mult <- ifelse(geno1==1 & geno2==1,mult/2 ,mult)
+                    
+                    mult<-1
+                    #mult <- ifelse(g11!=g12 ,mult *2 ,mult)
+                    #mult <- ifelse(g21!=g22 ,mult *2 ,mult)
+                    
+                    #if(z1+z2 > 0)
+                    #  mult <- ifelse(g11!=g12 & g21!=g22,mult/2 ,mult)
+                    
+                    ppart<-Pa*Pz*P1*P2*mult*PGL1*PGL2
+              
+                    ssum<-ssum+ppart
+                    
+                    Ek[,2*z1+z2+1]<-Ek[,2*z1+z2+1]+ppart
                   
-                  #######################################
-                  ## probability of IBD given relatedness (P(Z=z|R))
-                  ########################################
-                  Pz<-Z[z1+z2+1]/2^(z1!=z2)
-                  
-                  if(Pz==0)
-                    next
-                  
-                  ########################################
-                  ## probablity of ancestral proportions given IBD and Ancestry proportions (P(Aj=a|Zj=z, Q1, Q2)) tabel 2
-                  ########################################
-                  Pa<-a1[a11]*a1[a12]*a2[a21]*a2[a22]
-                  
-                  if(z1==1)
-                    Pa<-Pa/(sum(a1*a2))
-                  if(z2==1)
-                    Pa<-Pa/(sum(a1*a2))
-                  
-                  ########################################
-                  ###probability of data given genotype (P(X|Gj=g1,g2))
-                  ########################################
-                  if(g1+g2==1){
-                    PGL1<-GL1[g1+g2+1,]/2
-                    PGL2<-GL2[g1+g2+1,]/2
+                    if(pprint)
+                      cat(count,"a:",a11,a12,a21,a22,"z:",z1,z2, "G1:",g11,g12, "G2:",g21,g22,"Pa=",Pa,"Pz=",Pz,"sum=",ssum[n],"ppart=",ppart[n],"P1*P2=",P1[n]*P2[n],"\n")
+                    }
                   }
-                  else{
-                    PGL1<-GL1[g1+g2+1,]
-                    PGL2<-GL2[g1+g2+1,]
-                  }
-                  
-                  
-                  ########################################
-                  ###probability of genotypes given relatedness (P(G1j=g1, G2j=g2|Aj=a, Zj=z)) tabel 1
-                  ########################################
-                  
-                  
-                  
-                  g11<-ifelse(geno1<1,1,0)
-                  g12<-ifelse(geno1<2,1,0)
-                  g21<-ifelse(geno2<1,1,0)
-                  g22<-ifelse(geno2<2,1,0)
-                  
-                  if(z1==1)
-                    P1<-ifelse(g11==g21,g21+(-1)^g21*f[,a11],0)
-                  else     #ind1 hap1                    #ind2 hap1
-                    P1<-(g11+(-1)^g11*f[,a11]) * (g21+(-1)^g21*f[,a21])
-                  
-                  if(z2==1)
-                    P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
-                  else     #ind1 hap2                    #ind2 hap2
-                    P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
-                  
-                  mult<-1
-                  mult <- ifelse(geno1==1 ,mult *2 ,mult)
-                  mult <- ifelse(geno2==1 ,mult *2 ,mult)
-                  
-                  if(z1+z2 > 0)
-                    mult <- ifelse(geno1==1 & geno2==1,mult/2 ,mult)
-                  
-                  ppart<-Pa*Pz*P1*P2*mult*PGL1*PGL2
-            
-                  ssum<-ssum+ppart
-                  
-                  Ek[,2*z1+z2+1]<-Ek[,2*z1+z2+1]+ppart
-                
-                  if(pprint)
-                    cat(count,"a:",a11,a12,a21,a22,"z:",z1,z2, "G:",g1,g2,"Pa=",Pa,"Pz=",Pz,"sum=",ssum[n],"ppart=",ppart[n],"P1*P2=",P1[n]*P2[n],"\n")
                 }
               }
             }
@@ -287,7 +304,7 @@ NgsAdmixRelateEMoneStepOld<-function(par,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint
     }
   }
   logL<-sum(log(ssum))
-  PP<-colSums(Ek/rowSums(Ek))/length(geno1)
+  PP<-colSums(Ek/rowSums(Ek))/length(f[,1])
   x2<-c(PP[1],PP[2]+PP[3],PP[4])#,logL)
   return(x2)
 }
@@ -369,7 +386,7 @@ doProb<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=T){
                   P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
                 else     #ind1 hap2                    #ind2 hap2
                   P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
-                
+                browser()
                 mult<-1
                 mult <- ifelse(geno1==1 ,mult *2 ,mult)
                 mult <- ifelse(geno2==1 ,mult *2 ,mult)
@@ -474,13 +491,13 @@ NgsAdmixRelateEM<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
 #########################################
 #####OLD Expectaion Maximization based on NgsAdmixRelateEMoneStepOld
 #########################################
-NgsAdmixRelateEMOld<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
+NgsAdmixRelateEMOld<-function(initZ,a1,a2,f,GL1,GL2,maxit,tol){
   
   par<-c(initZ,NA)
   flag<-0
   
   for(i in 1:maxit){
-    newPar<-NgsAdmixRelateEMoneStepOld(par[1:3],a1,a2,geno1,geno2,f,GL1,GL2,pprint=F)
+    newPar<-NgsAdmixRelateEMoneStepOld(par[1:3],a1,a2,f,GL1,GL2,pprint=F)
     cat("Iteration:",i-1,"LogLike = ",newPar[4], "Z = ",par[1],par[2],par[3],"\n")
     # Stop iteration if the difference between the current and new estimates is less than a tolerance level
     
@@ -565,7 +582,7 @@ NgsAdmixRelateML(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2)
 initZ<-c(0.2,0.4,0.4)
 
 #old version which calculate all probabilities in every loop
-NgsAdmixRelateEMoneStepOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2)
+NgsAdmixRelateEMoneStepOld(initZ,a1,a2,f,like1,like2)
 
 #doProp calculate the probabiility parts which are independent of Z and therefore the same for all EM steps
 ppart<-doProb(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,pprint=F)
@@ -580,8 +597,8 @@ f1<-runif(M) #0.05 og 0.95#randomly sample an allele frequency from a uniform di
 f2<-runif(M)
 f3<-runif(M)
 f<-cbind(f1,f2,f3)
-depth <- 2 #mean depth
-error <- 0.005
+depth <- 30 #mean depth
+error <- 0.05
 initZ<- c(0.2,0.4,0.4)#Initial values for the parameters to be optimized #ALGO virker ikke, hvis initZ=(0,0,0)
 maxit<-100
 tol<-1e-3
@@ -601,8 +618,14 @@ k2<-c(0.1,0.1,0.05) ### 25%:  IBD 2 fra population 1
 k1<-c(0.1,0.2,0.2) ### 50% : IBD 1 fra population 1.
 k0<-c(0.05,0.2,0)
 
-a1<-k2+k1+k0# (Ancestry proportions) Q individ 1. 
-a2<-k2+k1+k0# (Ancestry proportions) Q individ 2. 
+k2<-c(0,0,0) ### 25%:  IBD 2 fra population 1
+k1<-c(0,0,0) ### 50% : IBD 1 fra population 1.
+k0<-c(1,0,0)
+
+a1<-c(0.2,0.2,0.6)#k2+k1+k0# (Ancestry proportions) Q individ 1. 
+a2<-c(0.3,0.5,0.2)#k2+k1+k0# (Ancestry proportions) Q individ 2.
+a1<-c(1,0,0)#k2+k1+k0# (Ancestry proportions) Q individ 1. 
+a2<-c(1,0,0)#k2+k1+k0# (Ancestry proportions) Q individ 2.
 
 geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
 like1<-getLikes(geno[,1], depth, error) #genotype likelihoods for individual 1
@@ -611,5 +634,5 @@ like2<-getLikes(geno[,2], depth, error)
 
 NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,pprint=F)
 NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
-NgsAdmixRelateEMOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+NgsAdmixRelateEMOld(initZ,a1,a2,f,like1,like2,maxit,tol)
 

@@ -178,119 +178,7 @@ NgsAdmixRelateML<-function(Z,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
   return(logL)
 }
 
-################################################################
-#####Old version which calculate all probabilities in each loop of a EM step
-################################################################
-NgsAdmixRelateEMoneStepOld<-function(par,a1,a2,geno1,geno2,f,GL1, GL2,n=1,pprint=TRUE){
-  Z<-par
-  ssum<-0
-  count<-0
-  npop<-length(a1)
-  Ek <- matrix(0,ncol=4,nrow=length(geno1))
-  
-  for(a11 in 1:npop){
-    if(a1[a11]==0)
-      next
-    for(a12 in 1:npop){ 
-      if(a1[a12]==0)
-        next
-      for(a21 in 1:npop){
-        if(a2[a21]==0)
-          next
-        for(a22 in 1:npop){
-          if(a2[a22]==0)
-            next
-          for(z1 in 0:1){ 
-            if(z1==1&a11!=a21)
-              next
-            for(z2 in 0:1){ 
-              if(z2==1&a12!=a22)
-                next
-              for(g1 in 0:1){
-                for(g2 in 0:1){
-                  
-                  count<-count+1
-                  
-                  #######################################
-                  ## probability of IBD given relatedness (P(Z=z|R))
-                  ########################################
-                  Pz<-Z[z1+z2+1]/2^(z1!=z2)
-                  
-                  if(Pz==0)
-                    next
-                  
-                  ########################################
-                  ## probablity of ancestral proportions given IBD and Ancestry proportions (P(Aj=a|Zj=z, Q1, Q2)) tabel 2
-                  ########################################
-                  Pa<-a1[a11]*a1[a12]*a2[a21]*a2[a22]
-                  
-                  if(z1==1)
-                    Pa<-Pa/(sum(a1*a2))
-                  if(z2==1)
-                    Pa<-Pa/(sum(a1*a2))
-                  
-                  ########################################
-                  ###probability of data given genotype (P(X|Gj=g1,g2))
-                  ########################################
-                  if(g1+g2==1){
-                    PGL1<-GL1[g1+g2+1,]/2
-                    PGL2<-GL2[g1+g2+1,]/2
-                  }
-                  else{
-                    PGL1<-GL1[g1+g2+1,]
-                    PGL2<-GL2[g1+g2+1,]
-                  }
-                  
-                  
-                  ########################################
-                  ###probability of genotypes given relatedness (P(G1j=g1, G2j=g2|Aj=a, Zj=z)) tabel 1
-                  ########################################
-                  
-                  
-                  
-                  g11<-ifelse(geno1<1,1,0)
-                  g12<-ifelse(geno1<2,1,0)
-                  g21<-ifelse(geno2<1,1,0)
-                  g22<-ifelse(geno2<2,1,0)
-                  
-                  if(z1==1)
-                    P1<-ifelse(g11==g21,g21+(-1)^g21*f[,a11],0)
-                  else     #ind1 hap1                    #ind2 hap1
-                    P1<-(g11+(-1)^g11*f[,a11]) * (g21+(-1)^g21*f[,a21])
-                  
-                  if(z2==1)
-                    P2<-ifelse(g12==g22,g22+(-1)^g22*f[,a22],0)
-                  else     #ind1 hap2                    #ind2 hap2
-                    P2<-(g12+(-1)^g12*f[,a12]) * (g22+(-1)^g22*f[,a22])
-                  
-                  mult<-1
-                  mult <- ifelse(geno1==1 ,mult *2 ,mult)
-                  mult <- ifelse(geno2==1 ,mult *2 ,mult)
-                  
-                  if(z1+z2 > 0)
-                    mult <- ifelse(geno1==1 & geno2==1,mult/2 ,mult)
-                  
-                  ppart<-Pa*Pz*P1*P2*mult*PGL1*PGL2
-            
-                  ssum<-ssum+ppart
-                  
-                  Ek[,2*z1+z2+1]<-Ek[,2*z1+z2+1]+ppart
-                
-                  if(pprint)
-                    cat(count,"a:",a11,a12,a21,a22,"z:",z1,z2, "G:",g1,g2,"Pa=",Pa,"Pz=",Pz,"sum=",ssum[n],"ppart=",ppart[n],"P1*P2=",P1[n]*P2[n],"\n")
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-  logL<-sum(log(ssum))
-  PP<-colSums(Ek/rowSums(Ek))/length(geno1)
-  x2<-c(PP[1],PP[2]+PP[3],PP[4])#,logL)
-  return(x2)
-}
+
 
 #########################################
 #####Calculate the probability parts which are independent of Z and therefore the same for all EM steps. 
@@ -471,37 +359,7 @@ NgsAdmixRelateEM<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
   # list(Z, logL)
 }
 
-#########################################
-#####OLD Expectaion Maximization based on NgsAdmixRelateEMoneStepOld
-#########################################
-NgsAdmixRelateEMOld<-function(initZ,a1,a2,geno1,geno2,f,GL1,GL2,maxit,tol){
-  
-  par<-c(initZ,NA)
-  flag<-0
-  
-  for(i in 1:maxit){
-    newPar<-NgsAdmixRelateEMoneStepOld(par[1:3],a1,a2,geno1,geno2,f,GL1,GL2,pprint=F)
-    cat("Iteration:",i-1,"LogLike = ",newPar[4], "Z = ",par[1],par[2],par[3],"\n")
-    # Stop iteration if the difference between the current and new estimates is less than a tolerance level
-    
-    if(all(abs(par[1:3] - newPar[1:3]) < tol)){
-      flag <- 1 
-      cat("Congratulations the EM algorithm has converged! \n")
-      return(par)
-      break
-    }
-    
-    # Otherwise continue iteration
-    par <- newPar
-    
-  }
-  if(!flag){
-    warning("Didn't converge\n")
-    return(newPar)
-  } 
-  
-  # list(Z, logL)
-}
+
 
 #########################################
 #####Expectaion Maximization based on SQUAREM
@@ -524,7 +382,7 @@ M<-100000 # No. of diallelic loci
 f1<-runif(M) #randomly sample an allele frequency from a uniform distribution between 0 and 1
 f2<-runif(M)
 f3<-runif(M)
-f<-cbind(f1,f2,f3)
+f<-cbind(f1,f2,f3) # ancestral allele frequency
 #f[f>-1]<-0.2
 
 #########################################
@@ -576,100 +434,206 @@ NgsAdmixRelateEMoneStep(initZ,ppart,n=1)
 ##### Expectaion Maximization
 ###########################################
 M<-100000 # No. of diallelic loci
-f1<-runif(M) #0.05 og 0.95#randomly sample an allele frequency from a uniform distribution between 0 and 1
-f2<-runif(M)
-f3<-runif(M)
-f<-cbind(f1,f2,f3)
+f1<-runif(M,min=0.05,max=0.95) #0.05 og 0.95#randomly sample an allele frequency from a uniform distribution between 0 and 1
+f2<-runif(M,min=0.05,max=0.95)
+#f3<-runif(M,min=0.05,max=0.95)
+f<-cbind(f1,f2)#,f3) #ancestral allele frequency
+
+#OR f generated
+f<-read.table("~/relateAdmix/data/smallPlink.2.P")
+f<-as.matrix(f[1:M,])
+
+#####################
 depth <- 2 #mean depth
 error <- 0.005
 initZ<- c(0.2,0.4,0.4)#Initial values for the parameters to be optimized #ALGO virker ikke, hvis initZ=(0,0,0)
 maxit<-100
-tol<-1e-3
+tol<-1e-4
 
+########Different Ancestry proportions#############
 ## siblings one population - FIKS med a....
-k2=c(0.25,0,0) ### 25%:  IBD 2 fra population 1
-k1=c(0.5,0,0) ### 50% : IBD 1 fra population 1.
-k0<-c(0.25,0,0)
+k2=c(0.25,0) ### 25%:  IBD 2 fra population 1
+k1=c(0.5,0) ### 50% : IBD 1 fra population 1.
+k0<-c(0.25,0)
 
 ## siblings 2 populations 
-k2<-c(0.125,0.125,0) ### 25%:  IBD 2 fra population 1
-k1<-c(0.25,0.25,0) ### 50% : IBD 1 fra population 1.
-k0<-c(0.125,0.125,0)
+k2<-c(0.125,0.125) ### 25%:  IBD 2 fra population 1
+k1<-c(0.25,0.25) ### 50% : IBD 1 fra population 1.
+k0<-c(0.125,0.125)
 
 ## siblings 3 populations 
-k2<-c(0.1,0.1,0.05) ### 25%:  IBD 2 fra population 1
-k1<-c(0.1,0.2,0.2) ### 50% : IBD 1 fra population 1.
-k0<-c(0.05,0.2,0)
+#k2<-c(0.1,0.1,0.05) ### 25%:  IBD 2 fra population 1
+#k1<-c(0.1,0.2,0.2) ### 50% : IBD 1 fra population 1.
+#k0<-c(0.05,0.2,0)
+
+## unrelated individuals 2 populations 
+k2<-c(0,0) ### 25%:  IBD 2 fra population 1
+k1<-c(0,0) ### 50% : IBD 1 fra population 1.
+k0<-c(0.77,0.33)
 
 a1<-k2+k1+k0# (Ancestry proportions) Q individ 1. 
 a2<-k2+k1+k0# (Ancestry proportions) Q individ 2. 
 
+
+#####sim genotypes and genotype likelihoods########
 geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
 like1<-getLikes(geno[,1], depth, error) #genotype likelihoods for individual 1
 like2<-getLikes(geno[,2], depth, error)
 
-
+######################################
+####nsRelateAdmix
+######################################
 NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,pprint=F)
-NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
-NgsAdmixRelateEMOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+#NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+#NgsAdmixRelateEMOld(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
 
+#####################################
+#####relateAdmix
+######################################
+library(relateAdmix)
+#example(relate)
+r<-relate(geno[,1],geno[,2],a1,a2,f,tol=tol, maxIter=maxit, start=initZ) #hvad med tolStop og useSq?
+r
 
+#r<-read.table('output.k',head=T,as.is=T);pdf('rel.pdf');plot(r[,4],r[,5],ylab='k2',xlab='k1');dev.off()
 
 #######################################################################################################
 ##### Simulate and plot 100 pairs of siblings K=(0.25,0.5,0.25) from 3 populationer  with depth 25
 #######################################################################################################
+N<-2 #No. of individuals
+
+
+allR<-ngsRelateAdmixforNsubjects(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N)
+
+allR2<- RelateAdmixforNsubjects(k1,k2,a1,a2,f,initZ,maxit,tol,N)
+
+
+
+relationships<-rbind(c(1,0,0),c(0.25,0.5,0.25),c(0,1,0),c(0.5,0.5,0),c(0.75,0.25,0),c(0.9375,0.0625, 0))
+
+#############################################
+#####ngsRelateAdmix for N subjects and depth 
+#############################################
 M<-100000 # No. of diallelic loci
-f1<-runif(M) #randomly sample an allele frequency from a uniform distribution between 0 and 1
-f2<-runif(M)
-f3<-runif(M)
-f<-cbind(f1,f2,f3)
-k2<-c(0.125,0.125,0) ### 25%:  IBD 2 fra population 1
-k1<-c(0.25,0.25,0) ### 50% : IBD 1 fra population 1.
-k0<-c(0.25,0.25,0)
-sum(k2+k1/2)
-a1<-k2+k1/2+k0# (Ancestry proportions) Q individ 1. 
-a2<-k2+k1/2+k0# (Ancestry proportions) Q individ 2. 
-depth <- 25 #mean depth
+#f<-read.table("~/relateAdmix/data/smallPlink.2.P")
+f<-read.table("~/relateAdmix/data/THG_pruned.2.P_1")
+f<-as.matrix(f[1:M,])
 error <- 0.005
 initZ<- c(0.2,0.4,0.4)#Initial values for the parameters to be optimized #ALGO virker ikke, hvis initZ=(0,0,0)
 maxit<-100
-tol<-1e-3
-N<-1 #No. of individuals
-
-a1<-c(1,0,0)#hvorfor kører den ikke? 
-a2<-c(1,0,0)
-allR<-EMforNsubjects(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N)
-
-#########################################
-#####EM for N subjects
-#########################################
-
+tol<-1e-4
+N<-10 
+relationships<-rbind(c(1,0,0),c(0.25,0.5,0.25),c(0,1,0),c(0.5,0.5,0),c(0.75,0.25,0),c(0.9375,0.0625, 0))
+relationships2<-c("Unrelated","Full siblings","Parent-offspring","half-siblings","First-cousins","Second-cousins")
 deptVec<-c(1,2,4,8,16,32)
 nameVec<-c()
 for(d in 1:length(deptVec)){
   depth<-deptVec[d]
-  allR<-EMforNsubjects(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N)
-  nam <- paste("k1",k1[1],k1[2],k1[3],"_k2",k2[1],k2[2],k2[3],"_QA",a1[1],a1[2],a1[3],"_QB",a2[1],a2[2],a2[3],"_depth",depth,"_N",N, sep = "")
+  allR<-matrix(,nrow=N*dim(relationships)[1],ncol=3)
+  count<-0
+  for(r in 1:dim(relationships)[1]){
+    k0V<-runif(1, 0, relationships[r,1]) 
+    k0<-c(k0V,relationships[r,1]-k0V)
+    k1V<-runif(1, 0, relationships[r,2])
+    k1<-c(k1V,relationships[r,2]-k1V)
+    k2V<-runif(1, 0, relationships[r,3])
+    k2<-c(k2V,relationships[r,3]-k2V)
+    a1<-k2+k1+k0# (Ancestry proportions) Q individ 1. 
+    a2<-k2+k1+k0# (Ancestry proportions) Q individ 2.
+   #browser()
+      for(n in 1:N){
+        count<-count+1
+        geno<-simGeno(k1,k2,a1,a2,f) 
+        #browser()
+        like1<-getLikes(geno[,1], depth, error)
+        like2<-getLikes(geno[,2], depth, error)
+        R<-NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,pprint=F)
+        allR[count,]<-R
+      }
+    }
+  nam <- paste("depth",depth,"_N",N, sep = "")
   assign(nam, allR)
   print(nam)
   nameVec<-c(nameVec,nam)
 }
 
-plot(k10.500_k20.2500_QA100_QB100_depth25_N5[,2], k10.500_k20.2500_QA100_QB100_depth25_N5[,3], xlim=c(0,1),ylim=c(0,0.3),pch=20,xlab = "k1", ylab="k2", main=nam)
+plot(depth32_N10[,2], depth32_N10[,3],pch=20,xlab = "k1", ylab="k2", main=nam)#, xlim=c(0,1),ylim=c(0,0.3)
+
+#############################################
+#####RelateAdmix for N subjects and depth 
+#############################################
 
 
+RAallR<-matrix(,nrow=N*dim(relationships)[1],ncol=3)
+count<-0
+for(r in 1:dim(relationships)[1]){
+  k0V<-runif(1, 0, relationships[r,1])
+  k0<-c(k0V,relationships[r,1]-k0V)
+  k1V<-runif(1, 0, relationships[r,2])
+  k1<-c(k1V,relationships[r,2]-k1V)
+  k2V<-runif(1, 0, relationships[r,3])
+  k2<-c(k2V,relationships[r,3]-k2V)
+  a1<-k2+k1+k0# (Ancestry proportions) Q individ 1. 
+  a2<-k2+k1+k0# (Ancestry proportions) Q individ 2.
+  #browser()
+  for(n in 1:N){
+    count<-count+1
+    geno<-simGeno(k1,k2,a1,a2,f) 
+    #browser()
+    like1<-getLikes(geno[,1], depth, error)
+    like2<-getLikes(geno[,2], depth, error)
+    R<-NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,pprint=F)
+    RAallR[count,]<-R
+  }
+}
+
+plot(RAallR[,2], RAallR[,3],pch=20,xlab = "k1", ylab="k2", main=nam)#
+
+#[1] "depth1_N10"
+#[1] "depth2_N10"
+#[1] "depth4_N10"
+#[1] "depth8_N10"
+#[1] "depth16_N10"
+#[1] "depth32_N10"
+
+relationships2<-c("Unrelated","Full siblings","Parent-offspring","half-siblings","First-cousins","Second-cousins")
+relationshipVec<- rep(relationships2,1, each=N)
+relationshipVec<- as.factor(relationshipVec)
+xl<-c(0,1)
+yl<-c(0,0.3)
+pdf('/home/akrr/ngsRelateAdmix/R/plotk1k2.pdf',width = 8,height = 16) #PDF’s are 7x7 inches by default,
+par(mfrow=c(4,2))
+plot(depth1_N10[,2], depth1_N10[,3],pch=20,cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 1", col=relationshipVec)
+plot(depth2_N10[,2], depth2_N10[,3],pch=20,cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 2", col=relationshipVec)
+plot(depth4_N10[,2], depth4_N10[,3],pch=20,cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 4", col=relationshipVec)
+plot(depth8_N10[,2], depth8_N10[,3],pch=20,cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 8", col=relationshipVec)
+plot(depth16_N10[,2], depth16_N10[,3],pch=20,cex=0.4,xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 16", col=relationshipVec)
+plot(depth32_N10[,2], depth32_N10[,3],pch=20,cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="ngsRelateAdmix, depth = 32", col=relationshipVec)
+plot(RAallR[,2], RAallR[,3],pch=20, cex=0.4, xlim=xl,ylim=yl,xlab = "k1", ylab="k2", main="RelateAdmix",col=relationshipVec)
+legend("topright", legend = unique(relationshipVec), col=unique(relationshipVec),pch=20)
+dev.off()
 #########################################
 #####EM for N subjects
 #########################################
 
-EMforNsubjects<-function(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N){
+ngsRelateAdmixforNsubjects<-function(k1,k2,a1,a2,f,depth, error,initZ,maxit,tol,N){
   allR<-matrix(,nrow=N,ncol=3)
   for(n in 1:N){
     geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
     like1<-getLikes(geno[,1], depth, error) #genotype likelihoods for individual 1
     like2<-getLikes(geno[,2], depth, error)
-    R<-NgsAdmixRelateEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol)
+    R<-NgsAdmixRelateSquareEM(initZ,a1,a2,geno[,1],geno[,2],f,like1,like2,maxit,tol,pprint=F)
     allR[n,]<-R
+  }
+  return(allR)
+}
+
+RelateAdmixforNsubjects<-function(k1,k2,a1,a2,f,initZ,maxit,tol,N){
+  allR<-matrix(,nrow=N,ncol=3)
+  for(n in 1:N){
+    geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
+    R<-relate(geno[,1],geno[,2],a1,a2,f,tol=tol, maxIter=maxit, start=initZ)
+    allR[n,]<-R$k
   }
   return(allR)
 }
