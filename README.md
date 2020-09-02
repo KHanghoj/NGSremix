@@ -29,11 +29,13 @@ type
 cd ngsRelateAdmix/scr
 make -f CPP_Makefile
 ```
+
 ### R package without devtools
 
 If you do not have the devtools package (and dont want to install it) then you will have to build the R package 
 
 first download the code (you need to have a clean version without the compiled c++ code)
+
 ```
 git clone https://github.com/KHanghoj/ngsRelateAdmix.git
 ```
@@ -70,5 +72,4 @@ admixture smallPlink.bed 2
 ```
  
 
-**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA**
-
+**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA ANGSD - NGSADMIX - ngsRelateAdmix**
