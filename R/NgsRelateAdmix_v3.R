@@ -545,7 +545,7 @@ like2<-getLikes(geno[,2], depth, error)
 
 abc = data.frame(a=1:length(geno[,1]), b=rep("A", length(geno[,1])), c=rep("C", length(geno[,1])))
 
-write.table(cbind(abc, t(like1)/colSums(like1), t(like2)/colSums(like2)), file="/home/krishang/temp/beagle.txt", quote=F, col.names=T, row.names=F, sep="\t")
+write.table(cbind(abc, t(like1)/colSums(like1), t(like2)/colSums(like2)), file="beagle.txt", quote=F, col.names=T, row.names=F, sep="\t")
 
 ## NgsAdmixRelateEMoneStepOld(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på ordnede genotyper 
 ## NgsAdmixRelateEMoneStepOld_v2(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på IKKE ordnede genotyper
