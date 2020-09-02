@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/aalbrechtsen/relateAdmix.svg?branch=master)](https://travis-ci.org/aalbrechtsen/relateAdmix)
 
-# relateAdmix
-Estimating relatedness coefficients from admixed populations
+# ngsRelateAdmix
+Estimating relatedness coefficients from admixed populations. It can take called genotypes in PLINK format and genotype likelihoods in a beagle format
 
 The method is implemented in an R package and as a commandline based C++ program embeded in the R package. 
 
@@ -19,16 +19,15 @@ install_github("aalbrechtsen/relateAdmix")
 download the code
 
 ```
-git clone https://github.com/aalbrechtsen/relateAdmix.git
+git clone https://github.com/KHanghoj/ngsRelateAdmix.git
 ```
 
 go to the scr folder that contains the C++ files 
 type 
 
 ```
-cd relateAdmix/scr
-mv CPP_Makefile Makefile
-make
+cd ngsRelateAdmix/scr
+make -f CPP_Makefile
 ```
 ### R package without devtools
 
@@ -36,20 +35,12 @@ If you do not have the devtools package (and dont want to install it) then you w
 
 first download the code (you need to have a clean version without the compiled c++ code)
 ```
-git clone https://github.com/aalbrechtsen/relateAdmix.git
+git clone https://github.com/KHanghoj/ngsRelateAdmix.git
 ```
 
 ```
-R CMD build relateAdmix
+R CMD build ngsRelateAdmix
 ```
-
-or  build and install
-
-```
-R CMD build relate
-R CMD INSTALL Relate_<add version number>.tar.gz
-```
-
 
 # getting started
 
@@ -57,11 +48,11 @@ R CMD INSTALL Relate_<add version number>.tar.gz
 
 ### in R
 ```
-library(relateAdmix)
+library(ngsRelateAdmix)
 example(relate))
 ```
 
-### C++ from commandline
+### C++ from commandline - examples
 After installing the program you can try running it on the example data set in the data folder, which consists of 50 individuals that are admixed from 2 source populations.
 
 If you are in the src folder where you installed relateAdmix and you have the software ADMIXTURE installed this can be done as follows: 
@@ -78,4 +69,6 @@ admixture smallPlink.bed 2
 
 ```
  
+
+**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA**
 
