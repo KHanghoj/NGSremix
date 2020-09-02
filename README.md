@@ -12,7 +12,7 @@ If you have the devtools packages (https://github.com/hadley/devtools) installed
 
 ```
 library(devtools)
-install_github("aalbrechtsen/relateAdmix")
+install_github("KHanghoj/ngsRelateAdmix")
 ```
 
 ### To compile the C++ version
