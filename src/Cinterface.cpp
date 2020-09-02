@@ -80,7 +80,7 @@ fprintf(stderr,"%f\n",p->start[0]);
 }
 
 void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
-  fprintf(stderr,"opening : %s with x=%d y=%d\n",fname,x,y);
+  fprintf(stderr,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
   gzFile fp = NULL;
   if((fp=gzopen(fname,"r"))==NULL){
@@ -115,7 +115,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
 }
 
 void readDouble(double **d,int x,int y,const char*fname,int neg){
-  fprintf(stderr,"opening : %s with x=%d y=%d\n",fname,x,y);
+  fprintf(stderr,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
   FILE *fp = NULL;
   if((fp=fopen(fname,"r"))==NULL){
@@ -195,7 +195,6 @@ void readBeagle(const char *fname, myPars *pars){
 
   fprintf(stdout, "\t-> Beagle - Reading from: %s\n",fname);
 
-  
   while(readRow(fp, buf, row)!=0){
     if(nlines==0 && hasHeader){
       row.clear();
@@ -208,7 +207,7 @@ void readBeagle(const char *fname, myPars *pars){
 
     if(VERBOSE){
       if(nlines % 10000 == 0)
-        fprintf(stdout, "\t->Beagle - %d sites processed\r", nlines);
+        fprintf(stdout, "\t-> Beagle - %d sites processed\r", nlines);
     }
     
   }
@@ -216,8 +215,8 @@ void readBeagle(const char *fname, myPars *pars){
   int nSites = nlines;
   int nInd = ncols(alldata[0])/3 - 1;
 
-  fprintf(stdout, "\t->Beagle - %d sites and %d nInd processed\n", nSites, nInd);
-  fprintf(stdout, "\t->Beagle - Transpose from %d X %d*3 to %d X %d*3\n", nSites, nInd, nInd, nSites);
+  fprintf(stdout, "\t-> Beagle - %d sites and %d nInd processed\n", nSites, nInd);
+  fprintf(stdout, "\t-> Beagle - Transpose from %d X %d*3 to %d X %d*3\n", nSites, nInd, nInd, nSites);
 
   dMatrix *returnMat = allocDoubleMatrix(nInd,nSites*3);  
   char *major = new char[nSites];
@@ -242,7 +241,7 @@ void readBeagle(const char *fname, myPars *pars){
   pars->ids = ids;
   pars->nInd = nInd;
   pars->nSites = nSites;
-
+  
   fflush(stdout);  
 }
 
@@ -314,7 +313,11 @@ void *functionC(void *a) //the a means nothing
     int i=p.ind1;
     int j=p.ind2;
     int numIt=0;
-    relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+    if(usePlink)
+      relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+    else if(useBeagle)
+      ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+
     p.numIter=numIt;
     p.numI[0]=numIt;
     
@@ -325,7 +328,7 @@ void *functionC(void *a) //the a means nothing
     int d = NumJobs-running_job;
     printArray[d]=1;
     if(d%50==0)
-      fprintf(stderr,"\rrunning i1:%d i2:%d",allPars[d].ind1,allPars[d].ind2);  
+      fprintf(stderr,"\r\trunning i1:%d i2:%d",allPars[d].ind1,allPars[d].ind2);  
 
     while(cunt<NumJobs){
     
@@ -382,7 +385,7 @@ void *functionIBadmix(void *a) //the a means nothing
     int d = NumJobs-running_job;
     printArray[d]=1;
     if(d%50==0)
-      fprintf(stderr,"\rrunning i1:%d llh:%f",allPars[d].ind1,allPars[d].start[1]);  
+      fprintf(stderr,"\r->running i1:%d llh:%f",allPars[d].ind1,allPars[d].start[1]);  
 
     while(cunt<NumJobs){
     
@@ -433,17 +436,17 @@ int main(int argc, char *argv[]){
   int maxIter=5000;
   
   int numIter=4000;
-  double tol=0.0001;
-  const char *outname = "output.k";
+  double tol=0.00001;
+  const char *outname = "ngsrelateadmix.res";
   int autosomeMax = 23;
-  string geno= "";
-  string pos = "";
-  string chr = "";
+  // string geno= "";
+  // string pos = "";
+  // string chr = "";
   string plink_fam;
   string plink_bim;
   string plink_bed;
   std::string beagle_file, glf_file;
-  int nThreads =1;
+  int nThreads = 1;
   bArray *plinkKeep = NULL; //added in 0.97;
   const char* fname = NULL;
   const char* qname = NULL;
@@ -509,7 +512,6 @@ int main(int argc, char *argv[]){
   }
   
   //check if files exits
-  // fexists
   fex(qname);
   fex(fname);
 
@@ -573,7 +575,7 @@ int main(int argc, char *argv[]){
   }
   
   int K=getK(qname);
-  fprintf(stderr,"\t\t->K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
+  fprintf(stderr,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
   pars->maxIter=maxIter;
   pars->tol=tol;
   pars->tolStop=tolStop;
@@ -605,7 +607,7 @@ int main(int argc, char *argv[]){
     if(nThreads==1){
       double *start=new double[3];
       for(int i=0;i<nInd;i++){
-	fprintf(stderr,"\rrunning i1:%d",i);
+	fprintf(stderr,"\r\trunning i1:%d",i);
 	start[0] <- 0.02;
 	double llh=0;
       
@@ -620,17 +622,6 @@ int main(int argc, char *argv[]){
       cunt = 0;
       allPars = new eachPars[NumJobs];
 
-      /*
-    int *indMatrix = new int[nInd*(nInd-1)];
-    int cunter=0;
-    for(int i=0;i<nInd-1;i++){
-      for(int j=i+1;j<nInd;j++){
-	indMatrix[cunter*2]=i;
-	indMatrix[cunter*2+1]=j;
-	cunter++;
-      }
-    }
-      */
       printArray=new int[NumJobs];
       for(int c=0;c<NumJobs;c++){
 	printArray[c]=0;
@@ -658,36 +649,28 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < nThreads; i++)
       pthread_join(thread1[i], NULL);
     
-    //  for (int c = 0; c < NumJobs; c++)
-  // fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numI[0]);
-  
-
-    //  delete[] indMatrix;
-
-
-
     }
   }// done with inbreeding
   else if(nThreads==1){// relatedness no threads
     double *start=new double[3];
-    fprintf(stderr,"running i1:0 i2:0");  
+    fprintf(stderr,"\t->running i1:0 i2:0");  
     
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
 	start[0]=0.7;
 	start[1]=0.2;
-	  start[2]=0.1;
-	  fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
-          if(usePlink)
-            relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-          else if(useBeagle)
-            ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-	  fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
+        start[2]=0.1;
+        fprintf(stderr,"\r->running i1:%d i2:%d",i,j);
+        if(usePlink)
+          relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+        else if(useBeagle)
+          ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+        
+        fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
       }
     }
     delete[] start;
-  }
-  else{ // with threads (the cool way)
+  }else{ // with threads (the cool way)
 
     NumJobs = nInd*(nInd-1)/2;
     jobs =  nInd*(nInd-1)/2;
@@ -733,34 +716,34 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < nThreads; i++)
       pthread_join(thread1[i], NULL);
     
-    //  for (int c = 0; c < NumJobs; c++)
-  // fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[c].ind1,allPars[c].ind2,allPars[c].start[0],allPars[c].start[1],allPars[c].start[2],allPars[c].numI[0]);
-  
-
   delete[] indMatrix;
- }
+  }
 
 
 
-// clean
- fprintf(stderr,"\n");
- for(int j = 0; j < nSites; j++) 
-   delete[] F[j];
- delete[] F;
+  // clean
+  fprintf(stderr,"\n");
+  for(int j = 0; j < nSites; j++) 
+    delete[] F[j];
+  delete[] F;
   
- for(int i = 0; i < nInd; i++)
-   delete [] Q[i];
- delete[] Q;
+  for(int i = 0; i < nInd; i++)
+    delete [] Q[i];
+  delete[] Q;
  
- fclose(fp);
- delete[] allPars;
+  fclose(fp);
+  if(usePlink)
+    killMatrix(pars->data);
+  else if (useBeagle)
+    killMatrix(pars->dataGL);
+  delete[] allPars;
  
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
   fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
   fprintf(stderr, "\t[ALL done] results have been outputted to %s\n",outname);
 
-
+  
 
   return(0);
 }

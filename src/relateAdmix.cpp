@@ -450,20 +450,7 @@ for(int g22=0; g22<2; g22++){
     else
       P2 = (g12+pow(-1, g12)*f[i][a12]) * (g22+pow(-1, g22)*f[i][a22]);
 
-    // if(pgl1>0.0001 && pgl2>0.0001){
-    //   fprintf(stderr, "-> %d %d %d %f %f %f %f %f\n", i, z1, z2, Pa, pgl1, pgl2, P1, P1);
-    //   exit(0);
-    // }
-
-    // if(z1+z2>0){
-    //   fprintf(stderr, "-> %d %d %d %f %f %f %f %f\n", i, z1, z2, Pa, pgl1, pgl2, P1, P1);
-    //   exit(0);
-    // }
-      
-      
     tempPart[(z1+z2) * totSites + count] += Pa * P1 * P2 * pgl1 * pgl2;
-    // if(is_nan(tempPart[(z1+z2) * totSites + count]))
-    //   fprintf(stderr, "big trouble");
     count++;
 
   }   // sites
@@ -472,10 +459,6 @@ for(int g22=0; g22<2; g22++){
  }}}} // npops
  
 //// the em part
-
-// for(int i=0; i<totSites; i++)
-//   fprintf(stdout, "%d %f %f %f\n", i, tempPart[0 * totSites + i], tempPart[1 * totSites + i], tempPart[2 * totSites + i]);
- 
 
  int stepMax = 1;
  int mstep = 4;
@@ -512,16 +495,12 @@ for(int g22=0; g22<2; g22++){
  
  for(int i=0;i<totSites;i++){
    
-   siteSum=tempPart[i]*Pr0 +
-     tempPart[1*totSites + i]*Pr1+
-     tempPart[2*totSites + i]*Pr2;
-   // if(siteSum < 0.0000000001)
-   //   fprintf(stderr, "%d %f\n", i, siteSum);
+   siteSum=tempPart[i]*Pr0 + tempPart[1*totSites + i]*Pr1 + tempPart[2*totSites + i]*Pr2;
    x[0] += tempPart[i]*Pr0/siteSum;
    x[1] += tempPart[1*totSites + i]*Pr1/siteSum;
    x[2] += tempPart[2*totSites + i]*Pr2/siteSum;
  }
- // fprintf(stderr, "pars: %f %f %f\n", x[0], x[1], x[2]);
+
  for(int j=0;j<3;j++)
    x[j] /= totSites;
  

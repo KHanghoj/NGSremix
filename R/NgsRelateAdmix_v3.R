@@ -1,5 +1,5 @@
 library(SQUAREM)
-library(relateAdmix)
+## library(relateAdmix)
 
 norma<- function(x){
   xNorm<-c()
@@ -515,12 +515,14 @@ f1<-runif(M,min=0.05,max=0.95) #0.05 og 0.95#randomly sample an allele frequency
 f2<-runif(M,min=0.05,max=0.95)
 f3<-runif(M,min=0.05,max=0.95)
 f<-cbind(f1,f2,f3)
-depth <- 100 #mean depth
+depth <- 3 #mean depth
 error <- 0.01
 initZ<- c(0.2,0.4,0.4)#Initial values for the parameters to be optimized #ALGO virker ikke, hvis initZ=(0,0,0)
 maxit<-100
-tol<-1e-3
+tol<-1e-6
 
+write.table(f,file="freq.txt", quote=F, col.names=F, row.names=F)
+write.table(1-f,file="freq_flipped.txt", quote=F, col.names=F, row.names=F)
 
 ## siblings 2 populations 
 k2<-c(0.125,0.125,0) ### 25%:  IBD 2 fra population 1
@@ -530,6 +532,10 @@ k0<-c(0.125,0.125,0)
 a1<-k2+k1+k0#k2+k1+k0# (Ancestry proportions) Q individ 1. 
 a2<-k2+k1+k0#k2+k1+k0# (Ancestry proportions) Q individ 2.
 
+
+write.table(rbind(a1, a2),file="q.txt", quote=F, col.names=F, row.names=F)
+
+
 a1 #Ancestry proportions
 c(1-sum(k1)-sum(k2),sum(k1),sum(k2)) #Z
 
@@ -537,17 +543,21 @@ geno<-simGeno(k1,k2,a1,a2,f) #geno output: 0,1,2
 like1<-getLikes(geno[,1], depth, error) #genotype likelihoods for individual 1
 like2<-getLikes(geno[,2], depth, error)
 
+abc = data.frame(a=1:length(geno[,1]), b=rep("A", length(geno[,1])), c=rep("C", length(geno[,1])))
 
-NgsAdmixRelateEMoneStepOld(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på ordnede genotyper 
-NgsAdmixRelateEMoneStepOld_v2(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på IKKE ordnede genotyper
-ppart<-doProb(initZ,a1,a2,1-f,like1,like2) ##Udregner alle prob der er uafhængig af Z(k0,k1,k2), er baseret på ordnede genotyper
-NgsAdmixRelateEMoneStep(initZ,ppart) #Et step af ngsRelateAdmix tager ppart som input
+write.table(cbind(abc, t(like1)/colSums(like1), t(like2)/colSums(like2)), file="/home/krishang/temp/beagle.txt", quote=F, col.names=T, row.names=F, sep="\t")
 
-NgsAdmixRelateEM(initZ,a1,a2,1-f,like1,like2,maxit,tol) #ngsRelateAdmix baseret på ordnede genotyper
-NgsAdmixRelateSquareEM(initZ,a1,a2,1-f,like1,like2,maxit,tol,pprint=F) #ngsRelateAdmix med SquareEM baseret på ordnede genotyper
+## NgsAdmixRelateEMoneStepOld(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på ordnede genotyper 
+## NgsAdmixRelateEMoneStepOld_v2(initZ,a1,a2,1-f,like1,like2) #Et step af ngsRelateAdmix baseret på IKKE ordnede genotyper
+## ppart<-doProb(initZ,a1,a2,1-f,like1,like2) ##Udregner alle prob der er uafhængig af Z(k0,k1,k2), er baseret på ordnede genotyper
+## NgsAdmixRelateEMoneStep(initZ,ppart) #Et step af ngsRelateAdmix tager ppart som input
+
+# NgsAdmixRelateEM(initZ,a1,a2,1-f,like1,like2,maxit,tol) #ngsRelateAdmix baseret på ordnede genotyper
+a=NgsAdmixRelateSquareEM(initZ,a1,a2,1-f,like1,like2,maxit,tol,pprint=F) #ngsRelateAdmix med SquareEM baseret på ordnede genotyper
+write.table(a, file="ngsres.txt", quote=F, col.names=F, row.names=F)
 
 
-#example(relate)
-relate(geno[,1],geno[,2],a1,a2,f,tol=tol, maxIter=maxit, start=initZ) #hvad med tolStop og useSq?
+## #example(relate)
+## relate(geno[,1],geno[,2],a1,a2,f,tol=tol, maxIter=maxit, start=initZ) #hvad med tolStop og useSq?
 
 
