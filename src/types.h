@@ -63,7 +63,7 @@ typedef struct{
   int y;
   double** matrix;
   void info(const std::string name) const{
-    printf("dMatrix ims :%s = (%d,%d) \n",name.c_str(),x,y);
+    printf("dMatrix dims :%s = (%d,%d) \n",name.c_str(),x,y);
   }
 
   void print(const char *st,const char *file){
@@ -377,13 +377,40 @@ typedef struct{ //used by HMMtest
 
 
 
-typedef struct  { //pars used by relateHMM
+// typedef struct  { //pars used by relateHMM
+//   //?? min;
+//   //pointer
+//   iMatrix *data; //1
+//   iArray *chr; //1
+//   dArray *position;//1
+
+//   double **F;
+//   double **Q;
+//   double tol;
+//   double tolStop;
+//   int maxIter;
+//   int useSq;
+//   int K;
+//   int nSites;
+//   double likes;
+
+// }myPars ;//pars used by relateHMM
+
+typedef struct  { //pars used by ngsrelateadmix
   //?? min;
   //pointer
+  // for plink
   iMatrix *data; //1
   iArray *chr; //1
   dArray *position;//1
 
+  // for beagle
+  dMatrix *dataGL;
+  char *major;
+  char *minor;
+  char **ids;
+  
+  // common  
   double **F;
   double **Q;
   double tol;
@@ -394,8 +421,12 @@ typedef struct  { //pars used by relateHMM
   int nSites;
   double likes;
 
+  // new common
+  int nInd;
+  
 }myPars ;//pars used by relateHMM
- 
+
+
 
 typedef struct  { //pars used by relateHMM
   //?? min;
@@ -408,4 +439,4 @@ typedef struct  { //pars used by relateHMM
   int *numI;
   double llh;
 }eachPars ;//pars used by relateHMM
- 
+

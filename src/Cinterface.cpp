@@ -45,6 +45,12 @@ int doInbreeding =0;
 
 eachPars *allPars = NULL;
 
+bool usePlink = false;
+bool useBeagle = false;
+bool useGlf = false;
+
+int VERBOSE = 1;
+
 void *relateWrap(void *a){
   eachPars *p = (eachPars *)a;
   myPars *pars=p->pars;
@@ -143,6 +149,102 @@ void readDouble(double **d,int x,int y,const char*fname,int neg){
   fclose(fp); 
 }
 
+int readRow(gzFile gz, char *buf, std::string &row){
+
+  while (gzgets(gz, buf, sizeof(buf)) != Z_NULL){
+      std::string temp = buf;
+      row += temp;
+      if(row[row.size()-1] == '\n'){
+        row[row.size()-1] = '\0';
+        return row.size();
+      }
+    }
+  return row.size();
+}
+
+int ncols(std::string & row){
+  std::string word ;
+  std::istringstream ss(row) ;
+  int ret=0 ;
+  while (ss >> word) {
+    ret++;
+  }
+  return ret;
+}
+
+void readBeagle(const char *fname, myPars *pars){
+  const char *delims = "\t \n";
+  
+  bool hasHeader = true;
+  std::vector<std::string> alldata;
+  alldata.reserve(100000);
+  
+  int lens = 4096;
+  // int lens = 1000000;
+  std::string row;
+  row.reserve(lens);
+  int nlines=0 ;
+  char buf[lens];
+
+  gzFile fp = gzopen(fname, "rb");
+  if (fp==Z_NULL){
+
+    fprintf(stdout,"ERROR: '%s' cannot open file: %s\n", __FUNCTION__,fname);
+    exit(0);
+  };
+
+  fprintf(stdout, "\t-> Beagle - Reading from: %s\n",fname);
+
+  
+  while(readRow(fp, buf, row)!=0){
+    if(nlines==0 && hasHeader){
+      row.clear();
+      hasHeader=false;
+      continue;
+    }
+    alldata.push_back(row);
+    row.clear();
+    nlines++;
+
+    if(VERBOSE){
+      if(nlines % 10000 == 0)
+        fprintf(stdout, "Beagle - %d sites processed\r", nlines);
+    }
+    
+  }
+  
+  int nSites = nlines;
+  int nInd = ncols(alldata[0])/3 - 1;
+
+  fprintf(stdout, "Beagle - %d sites and %d nInd processed\n", nSites, nInd);
+  fprintf(stdout, "Beagle - Transpose from SitesXInd*3 to IND X Sites*3\n");
+
+  dMatrix *returnMat = allocDoubleMatrix(nInd,nSites*3);  
+  char *major = new char[nSites];
+  char *minor = new char[nSites];
+  char **ids = new char*[nSites];
+
+  
+  
+  for(int i=0; i<nSites; i++){
+    char * t = strdup(alldata[i].c_str());
+    // see https://github.com/KHanghoj/code_snippets/blob/8bf16e703f8eab3fda593b0dcf9aa6506ff16950/code/read_beagle.cpp
+    ids[i] = strdup(strtok(t,delims)); // pos
+    major[i] = strtok(NULL,delims)[0]; // major
+    minor[i] = strtok(NULL,delims)[0]; // minor
+    for(int j=0; j<nInd; j++)
+      for(int jj=0; jj<3; jj++)
+        returnMat->matrix[j][i*3 + jj] = atof(strtok(NULL, delims));
+  }
+  pars->dataGL = returnMat;
+  pars->major = major;
+  pars->minor = minor;
+  pars->ids = ids;
+  pars->nInd = nInd;
+  pars->nSites = nSites;
+}
+
+
 int getK(const char*fname){
   const char*delims=" \n";
   FILE *fp = NULL;
@@ -177,6 +279,7 @@ double **allocDouble(size_t x,size_t y){
 void info(){
   fprintf(stderr,"Arguments:\n");
   fprintf(stderr,"\t-plink name of the binary plink file (excluding the .bed)\n");
+  fprintf(stderr,"\t-beagle name of the gzipped beagle file\n");  
   fprintf(stderr,"\t-fname Ancestral population frequencies\n"); 
   fprintf(stderr,"\t-qname Admixture proportions\n"); 
   fprintf(stderr,"\t-o name of the output file\n"); 
@@ -299,7 +402,6 @@ void *functionIBadmix(void *a) //the a means nothing
 
 
 void fex(const char* fileName){
-  const char*delims=" \n";
   FILE *fp = NULL;
   if((fp=fopen(fileName,"r"))==NULL){
     fprintf(stderr,"can't open:%s\n",fileName);
@@ -338,6 +440,7 @@ int main(int argc, char *argv[]){
   string plink_fam;
   string plink_bim;
   string plink_bed;
+  std::string beagle_file, glf_file;
   int nThreads =1;
   bArray *plinkKeep = NULL; //added in 0.97;
   const char* fname = NULL;
@@ -364,6 +467,7 @@ int main(int argc, char *argv[]){
     else if(strcmp(argv[argPos],"-nThreads")==0 || strcmp(argv[argPos],"-P")==0) 
       nThreads=atoi(argv[argPos+1]);
     else if(strcmp(argv[argPos],"-plink")==0){
+      usePlink = true;
       std::string p_str =string( argv[argPos+1]);
       if(p_str.length()>4){
 	std::string ext = p_str.substr(p_str.length()-4,p_str.length());
@@ -381,8 +485,13 @@ int main(int argc, char *argv[]){
 	plink_fam = (p_str+".fam");
 	plink_bed = (p_str+".bed");	
      	}
-    }
-    else{
+    } else if (strcmp(argv[argPos], "-beagle")==0){
+      beagle_file = argv[argPos+1];
+      useBeagle = true;
+    } else if (strcmp(argv[argPos], "-glf")==0){
+      glf_file = argv[argPos+1];  // not implemented yet
+      useGlf = true;
+    } else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
       return 0;
@@ -390,55 +499,76 @@ int main(int argc, char *argv[]){
     
     argPos+=2;
   }
+
+  if((useBeagle && usePlink) || (!useBeagle && !usePlink)){
+    fprintf(stderr, "ERROR - cannot provide both (or none of) '-beagle' and '-plink' file\n");
+    info();
+    exit(0);
+  }
   
   //check if files exits
   // fexists
   fex(qname);
   fex(fname);
- 
-  //////////////////////////////////////////////////
-  //read plink data
-  printf("\t-> Will assume these are the plink files:\n\t\tbed: %s\n\t\tbim: %s\n\t\tfam: %s\n",plink_bed.c_str(),plink_bim.c_str(),plink_fam.c_str());
-  int numInds = numberOfLines(plink_fam.c_str())-1;//the number of individuals is just the number of lines
 
-  
-  myPars *pars =  new myPars();
-  plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
-  fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
-  fprintf(stdout,"\t-> reading genotypes ");
-  fflush(stdout);
-  iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
-  fprintf(stdout," - done \n");
-  fflush(stdout);
-  if(tmp->y==plinkKeep->numTrue){
+  int numInds;
+  int nInd;
+  int nSites;
+  myPars *pars =  new myPars();  
+
+  if(useBeagle){
+    // read beagle and transpose to nInd * nsites*3
+    readBeagle(beagle_file.c_str(), pars);
     
-    pars->data = tmp;
-  }
-  else{
-    fprintf(stdout,"\t-> extractOK (%d %d) ",tmp->x,plinkKeep->numTrue);
+    nSites = pars->nSites;
+    nInd = pars->nInd;
+    
+  }else if (usePlink){
+    //////////////////////////////////////////////////
+    //read plink data or beagle
+    printf("\t-> Will assume these are the plink files:\n\t\tbed: %s\n\t\tbim: %s\n\t\tfam: %s\n",plink_bed.c_str(),plink_bim.c_str(),plink_fam.c_str());
+    numInds = numberOfLines(plink_fam.c_str())-1;//the number of individuals is just the number of lines
+    plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
+    fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
+    fprintf(stdout,"\t-> reading genotypes ");
     fflush(stdout);
-    
-    pars->data = extractOK(plinkKeep,tmp);
-    killMatrix(tmp);
+    iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
     fprintf(stdout," - done \n");
     fflush(stdout);
-
-  }
-  killArray(plinkKeep);
-  fprintf(stdout,"\t-> sorting ");
-  fflush(stdout);
-  mysort(pars,0);
-  fprintf(stdout," - done \n");
-  fflush(stdout);
+    if(tmp->y==plinkKeep->numTrue){ 
+      pars->data = tmp;
+    }else{
+      fprintf(stdout,"\t-> extractOK (%d %d) ",tmp->x,plinkKeep->numTrue);
+      fflush(stdout);
+      
+      pars->data = extractOK(plinkKeep,tmp);
+      killMatrix(tmp);
+      fprintf(stdout," - done \n");
+      fflush(stdout);
+    }
+    killArray(plinkKeep);
+    fprintf(stdout,"\t-> sorting ");
+    fflush(stdout);
+    mysort(pars,0);  // why sorting?
+    fprintf(stdout," - done \n");
+    fflush(stdout);
     // printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
-  if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
-    printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
-    printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
-    return 0;
+    if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
+      printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
+      printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
+      return 0;
+    }
+
+    nSites = pars->data->y;
+    nInd = pars->data->x;
+      
+    
+  } else {
+    // fucked. no file is used.
+    exit(0);
   }
+  
   int K=getK(qname);
-  int nSites=pars->data->y;
-  int nInd=pars->data->x;
   fprintf(stderr,"\t\t->K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
   pars->maxIter=maxIter;
   pars->tol=tol;
@@ -447,8 +577,6 @@ int main(int argc, char *argv[]){
   pars->nSites=nSites;
   pars->useSq=useSq;
 
-
-  
   fp=fopen(outname,"w");
   double **F =allocDouble(nSites,K);
   double **Q =allocDouble(nInd,K);
