@@ -107,7 +107,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
     }
   }
   if(NULL!=gzgets(fp,buf,lens)){
-    fprintf(stderr,"Error: Too many sites in frequency file. Only %d sites in plink file\n",x);
+    fprintf(stderr,"Error: Too many sites in frequency file. Only %d sites in data file\n",x);
     exit(0);
 
   }
@@ -142,7 +142,7 @@ void readDouble(double **d,int x,int y,const char*fname,int neg){
     }
   }
    if(NULL!=fgets(buf,lens,fp)){
-    fprintf(stderr,"Error: Too many individuals in admixture (-qname) file. Only %d individuals in plink file\n",x);
+    fprintf(stderr,"Error: Too many individuals in admixture (-qname) file. Only %d individuals in data file\n",x);
     exit(0);
   }
 
@@ -208,7 +208,7 @@ void readBeagle(const char *fname, myPars *pars){
 
     if(VERBOSE){
       if(nlines % 10000 == 0)
-        fprintf(stdout, "Beagle - %d sites processed\r", nlines);
+        fprintf(stdout, "\t->Beagle - %d sites processed\r", nlines);
     }
     
   }
@@ -216,8 +216,8 @@ void readBeagle(const char *fname, myPars *pars){
   int nSites = nlines;
   int nInd = ncols(alldata[0])/3 - 1;
 
-  fprintf(stdout, "Beagle - %d sites and %d nInd processed\n", nSites, nInd);
-  fprintf(stdout, "Beagle - Transpose from SitesXInd*3 to IND X Sites*3\n");
+  fprintf(stdout, "\t->Beagle - %d sites and %d nInd processed\n", nSites, nInd);
+  fprintf(stdout, "\t->Beagle - Transpose from %d X %d*3 to %d X %d*3\n", nSites, nInd, nInd, nSites);
 
   dMatrix *returnMat = allocDoubleMatrix(nInd,nSites*3);  
   char *major = new char[nSites];
@@ -242,6 +242,8 @@ void readBeagle(const char *fname, myPars *pars){
   pars->ids = ids;
   pars->nInd = nInd;
   pars->nSites = nSites;
+
+  fflush(stdout);  
 }
 
 
@@ -522,6 +524,8 @@ int main(int argc, char *argv[]){
     
     nSites = pars->nSites;
     nInd = pars->nInd;
+
+    // pars->dataGL->print("beagle","test.txt");
     
   }else if (usePlink){
     //////////////////////////////////////////////////
@@ -674,8 +678,10 @@ int main(int argc, char *argv[]){
 	start[1]=0.2;
 	  start[2]=0.1;
 	  fprintf(stderr,"\rrunning i1:%d i2:%d",i,j);
-	  
-	  relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+          if(usePlink)
+            relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+          else if(useBeagle)
+            ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
 	  fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
       }
     }

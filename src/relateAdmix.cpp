@@ -1,6 +1,6 @@
 #include <math.h>
 #include <fstream>
-
+#include <cmath>
 
 
 void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter,int *geno1,int *geno2, double *a1,double *a2,double *start,double **f,double tol){
@@ -231,7 +231,7 @@ for(int a22=0;a22<npop;a22++){
    x[j] /= totSites;
  
  ///// start accelerated EM if k0<0.999
- if(x[1]<0.0005 && x[21]<0.0005 ){
+ if(x[1]<0.0005 && x[2]<0.0005 ){
    tolStop=0;
    numIter=1;
  }
@@ -340,6 +340,293 @@ delete[] Pm11;
 delete[] Pm21;
 delete[] Pm12;
 delete[] Pm22;
+delete[] keepSites;
+
+}
+
+int is_missing(double *ary){
+  if(fabs(ary[0] - ary[1])<1e-6 && fabs(ary[0] - ary[2])<1e-6 && fabs(ary[1] - ary[2])<1e-6)
+    return 1;
+  else
+    return 0;
+}
+
+bool is_nan(double x) { return x != x; }
+
+void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter, double *gl1, double *gl2, double *a1,double *a2,double *start,double **f,double tol){
+
+
+  int print=0;
+  int totSites=0;
+  int *keepSites = new int[nSites];
+  int npop=K;
+
+  for(int i=0;i<nSites;i++){
+    if(is_missing(&gl1[i*3]) || is_missing(&gl2[i*3]))
+      keepSites[i] = 0;
+    else{
+      keepSites[i] = 1;
+      totSites++;
+    }
+  }
+  if(print){
+    for(int k=0;k<K;k++){
+      fprintf(stderr,"a: K=%d\t%f\t%f\n",k,a1[k],a2[k]);
+    }
+    fprintf(stderr,"start = %f\t%f\t%f\n",start[0],start[1],start[2]);
+    for(int i=0;i<nSites;i++){
+      for(int k=0;k<K;k++){
+	if(f[i][k]>1 || f[i][k] <0)
+	  fprintf(stderr,"freq is fucked\n");
+      }
+    }
+    fprintf(stderr,"\ntotSites=%d\n",totSites);
+  }
+
+  double* tempPart=new double[totSites*3];
+  for(int i=0;i<totSites*3;i++) // k0, k1, k2
+    tempPart[i] =0;
+
+for(int a11=0;a11<npop;a11++){
+  if(a1[a11] <  tol) // || a1[a11] > 1-tol)
+    continue;
+for(int a12=0;a12<npop;a12++){
+  if(a1[a12] <  tol) // || a1[a12] > 1-tol)
+    continue;
+for(int a21=0;a21<npop;a21++){
+  if(a2[a21] <  tol) // || a1[a21] > 1-tol)
+    continue;
+for(int a22=0;a22<npop;a22++){
+  if(a2[a22] <  tol) // || a1[a22] > 1-tol)
+    continue;
+//kh:
+for(int z1=0; z1<2; z1++){
+  if(z1==1 && a11!=a21) // if two diff ancestral pops. k1 (ordered) is 0
+    continue;
+for(int z2=0; z2<2; z2++){
+  if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
+    continue;
+for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
+for(int g12=0; g12<2; g12++){
+for(int g21=0; g21<2; g21++){
+  if(z1==1 && g11!=g21)
+    continue;
+for(int g22=0; g22<2; g22++){
+  if(z2==1 && g12!=g22)
+    continue;
+  
+  double Pa = a1[a11]*a1[a12]*a2[a21]*a2[a22];
+  double sum1=0, sum2 = 0;
+  for(int k=0;k<npop;k++){
+    sum1+=a1[k]*a2[k];
+    sum2+=a1[k]*a2[k];      
+  }
+
+  if(z1==1)
+    Pa /= sum1;
+
+  if(z2==1)
+    Pa /= sum2;
+  
+  int count=0;
+  for(int i=0;i<nSites;i++){
+   // probablity of data
+    
+    if(keepSites[i]==0)    
+      continue;
+    // kh:
+    double pgl1 = gl1[i*3 + g11+g12];
+    double pgl2 = gl2[i*3 + g21+g22];
+
+    double P1, P2;
+      
+    if(z1==1 && g11==g21)
+      P1 = g21+pow(-1, g11)*f[i][a11];
+    else
+      P1 = (g11+pow(-1, g11)*f[i][a11]) * (g21+pow(-1, g21)*f[i][a21]);
+
+    if(z2==1 && g12==g22)
+      P2 = g22+pow(-1, g22)*f[i][a22];
+    else
+      P2 = (g12+pow(-1, g12)*f[i][a12]) * (g22+pow(-1, g22)*f[i][a22]);
+
+    // if(pgl1>0.0001 && pgl2>0.0001){
+    //   fprintf(stderr, "-> %d %d %d %f %f %f %f %f\n", i, z1, z2, Pa, pgl1, pgl2, P1, P1);
+    //   exit(0);
+    // }
+
+    // if(z1+z2>0){
+    //   fprintf(stderr, "-> %d %d %d %f %f %f %f %f\n", i, z1, z2, Pa, pgl1, pgl2, P1, P1);
+    //   exit(0);
+    // }
+      
+      
+    tempPart[(z1+z2) * totSites + count] += Pa * P1 * P2 * pgl1 * pgl2;
+    // if(is_nan(tempPart[(z1+z2) * totSites + count]))
+    //   fprintf(stderr, "big trouble");
+    count++;
+
+  }   // sites
+ }}}} // g11,g12,g21,g22
+ }}   // z1 and z2
+ }}}} // npops
+ 
+//// the em part
+
+// for(int i=0; i<totSites; i++)
+//   fprintf(stdout, "%d %f %f %f\n", i, tempPart[0 * totSites + i], tempPart[1 * totSites + i], tempPart[2 * totSites + i]);
+ 
+
+ int stepMax = 1;
+ int mstep = 4;
+ int stepMin = 1;
+ 
+ double x[3];
+ 
+
+ double p0[3];
+ double p1[3];
+ double q1[3];
+ double q2[3];
+ double sr2;
+ double sq2;
+ double sv2;
+ double ttol=0.0000001;
+ double norma;
+ double alpha;
+ double siteSum;
+ double Pr0;
+ double Pr1;
+ double Pr2;
+
+ ////// Test if k0>0.999
+ x[0]=0.999;
+ x[1]=0.0005;
+ x[2]=0.0005;
+ Pr0 = x[0];
+ Pr1 = x[1]/2;
+ Pr2 = x[2];
+
+ for(int j=0;j<3;j++)
+   x[j] = 0;
+ 
+ for(int i=0;i<totSites;i++){
+   
+   siteSum=tempPart[i]*Pr0 +
+     tempPart[1*totSites + i]*Pr1+
+     tempPart[2*totSites + i]*Pr2;
+   // if(siteSum < 0.0000000001)
+   //   fprintf(stderr, "%d %f\n", i, siteSum);
+   x[0] += tempPart[i]*Pr0/siteSum;
+   x[1] += tempPart[1*totSites + i]*Pr1/siteSum;
+   x[2] += tempPart[2*totSites + i]*Pr2/siteSum;
+ }
+ // fprintf(stderr, "pars: %f %f %f\n", x[0], x[1], x[2]);
+ for(int j=0;j<3;j++)
+   x[j] /= totSites;
+ 
+ ///// start accelerated EM if k0<0.999
+ if(x[1]<0.0005 && x[2]<0.0005 ){
+   tolStop=0;
+   numIter=1;
+ }
+ else{
+   for(int j=0;j<3;j++)
+     x[j] = start[j];
+   
+   for(int iter=0;iter<nIter;iter++){
+     numIter=iter;
+
+ 
+     Pr0 = x[0];
+     Pr1 = x[1]/2;
+     Pr2 = x[2];
+     
+     for(int j=0;j<3;j++)
+       x[j] = 0;
+     
+     for(int i=0;i<totSites;i++){
+       
+       siteSum=tempPart[i]*Pr0 +
+	 tempPart[1*totSites + i]*Pr1+
+	 tempPart[2*totSites + i]*Pr2;
+       
+       x[0] += tempPart[i]*Pr0/siteSum;
+       x[1] += tempPart[1*totSites + i]*Pr1/siteSum;
+       x[2] += tempPart[2*totSites + i]*Pr2/siteSum;
+     }
+
+
+     for(int j=0;j<3;j++)
+       x[j] /= totSites;
+     //////  acceleration
+     if(useSq && iter%3==2){
+    
+       sr2=0;
+       sq2=0;
+       sv2=0;
+
+       //get stop sizes
+       for(int j=0;j<3;j++){
+	 q1[j] = p1[j] - p0[j];
+	 sr2+= q1[j]*q1[j];
+	 q2[j] = x[j] - p1[j];
+	 sq2+= q2[j]*q2[j];
+	 sv2+= (q2[j]-q1[j])*(q2[j]-q1[j]); 
+       }
+
+       //Stop the algorithm if the step size less than tolStop
+       if(sqrt(sr2)<tolStop || sqrt(sq2)<tolStop || (p1[0]>0.999 & q2[0]>0)){
+	 tolStop=sr2;
+	 break;
+       }
+       
+       //calc alpha and map into [1,stepMax] if needed
+       alpha = sqrt(sr2/sv2);
+       if(alpha>stepMax)
+	 alpha=stepMax;
+       if(alpha<1)
+	 alpha=1;
+
+       //the magical step
+       for(int j=0;j<3;j++)
+	 x[j] = p0[j] + 2 * alpha * q1[j] + alpha*alpha * (q2[j] - q1[j]);
+       
+       //in the rare instans that the boundarys are crossed. map into [ttol,1-ttol]
+       for(int j=0;j<3;j++){
+	 if(x[j]<ttol)
+	   x[j]=ttol;
+	 if(x[j]>1-ttol)
+	   x[j]=1-ttol;
+
+       }
+       norma=x[0]+x[1]+x[2];
+       for(int j=0;j<3;j++)
+	 x[j] /= norma;
+
+       //change step size
+       if (alpha == stepMax) 
+	 stepMax = mstep * stepMax;
+     }
+     
+     if(useSq && iter%3==0){
+       for(int j=0;j<3;j++)
+	 p0[j] = x[j];
+     }
+     if(useSq && iter%3==1){
+       for(int j=0;j<3;j++)
+	 p1[j] = x[j];
+     }
+     
+   }
+
+ }
+
+
+for(int j=0;j<3;j++)
+  start[j] = x[j];
+
+delete[] tempPart;
 delete[] keepSites;
 
 }
