@@ -189,7 +189,7 @@ void readBeagle(const char *fname, myPars *pars){
   gzFile fp = gzopen(fname, "rb");
   if (fp==Z_NULL){
 
-    fprintf(stdout,"ERROR: '%s' cannot open file: %s\n", __FUNCTION__,fname);
+    fprintf(stdout,"\n\nERROR: '%s' cannot open file: %s\n\n", __FUNCTION__,fname);
     exit(0);
   };
 
@@ -506,7 +506,7 @@ int main(int argc, char *argv[]){
   }
 
   if((useBeagle && usePlink) || (!useBeagle && !usePlink)){
-    fprintf(stderr, "ERROR - cannot provide both (or none of) '-beagle' and '-plink' file\n");
+    fprintf(stderr, "\n\nERROR - cannot provide both (or none of) '-beagle' and '-plink' file\n\n");
     info();
     exit(0);
   }
@@ -712,11 +712,11 @@ int main(int argc, char *argv[]){
     for (int i = 0; i < nThreads; i++)
       pthread_create(&thread1[i], NULL, &functionC, NULL);
     
-  // Wait all threads to finish
+    // Wait all threads to finish
     for (int i = 0; i < nThreads; i++)
       pthread_join(thread1[i], NULL);
     
-  delete[] indMatrix;
+    delete[] indMatrix;
   }
 
 
