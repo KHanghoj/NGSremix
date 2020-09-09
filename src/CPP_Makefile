@@ -27,7 +27,7 @@ ibAdmix.o : ibAdmix.h ibAdmix.cpp
 	$(CC) -c ibAdmix.cpp ${FLAGS}
 
 Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o
-	$(CXX)  -o relateAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o ${FLAGS} -lz -lpthread 
+	$(CXX)  -o ngsRelateAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o ${FLAGS} -lz -lpthread 
 
 clean :
-	rm -f *.o relateAdmix
+	rm -f *.o ngsRelateAdmix
