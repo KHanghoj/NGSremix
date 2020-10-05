@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/aalbrechtsen/relateAdmix.svg?branch=master)](https://travis-ci.org/aalbrechtsen/relateAdmix)
 
-# ngsRelateAdmix
+# NGSremix
 Estimating relatedness coefficients from admixed populations. It can take called genotypes in PLINK format and genotype likelihoods in a beagle format
 
 The method is implemented in an R package and as a commandline based C++ program embeded in the R package. 
@@ -12,21 +12,21 @@ If you have the devtools packages (https://github.com/hadley/devtools) installed
 
 ```
 library(devtools)
-install_github("KHanghoj/ngsRelateAdmix")
+install_github("KHanghoj/NGSremix")
 ```
 
 ### To compile the C++ version
 download the code
 
 ```
-git clone https://github.com/KHanghoj/ngsRelateAdmix.git
+git clone https://github.com/KHanghoj/NGSremix.git
 ```
 
 go to the scr folder that contains the C++ files 
 type 
 
 ```
-cd ngsRelateAdmix/scr
+cd NGSremix/scr
 make -f CPP_Makefile
 ```
 
@@ -37,11 +37,11 @@ If you do not have the devtools package (and dont want to install it) then you w
 first download the code (you need to have a clean version without the compiled c++ code)
 
 ```
-git clone https://github.com/KHanghoj/ngsRelateAdmix.git
+git clone https://github.com/KHanghoj/NGSremix.git
 ```
 
 ```
-R CMD build ngsRelateAdmix
+R CMD build NGSremix
 ```
 
 # getting started
@@ -50,8 +50,8 @@ R CMD build ngsRelateAdmix
 
 ### in R
 ```
-library(ngsRelateAdmix)
-example(relate))
+library(NGSremix)
+example(relate)
 ```
 
 ### C++ from commandline - examples
@@ -72,4 +72,4 @@ admixture smallPlink.bed 2
 ```
  
 
-**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA ANGSD - NGSADMIX - ngsRelateAdmix**
+**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA ANGSD - NGSADMIX - NGSremix**
