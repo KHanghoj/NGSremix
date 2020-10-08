@@ -415,7 +415,8 @@ for(int g22=0; g22<2; g22++){
   if(z2==1 && g12!=g22)
     continue;
   
-  double Pa = a1[a11]*a1[a12]*a2[a21]*a2[a22];
+  double Pa = a1[a11]*a1[a12]*a2[a21]*a2[a22]; // this has to be fixed
+  
   double sum1=0, sum2 = 0;
   for(int k=0;k<npop;k++){
     sum1+=a1[k]*a2[k];
@@ -609,6 +610,7 @@ delete[] tempPart;
 delete[] keepSites;
 
 }
+
 
 
 

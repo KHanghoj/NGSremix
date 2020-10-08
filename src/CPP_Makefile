@@ -11,6 +11,9 @@ kmin.o : kmin.c kmin.h
 filereader_and_conversions.o : filereader_and_conversions.cpp filereader_and_conversions.h types.h
 	$(CXX) -c filereader_and_conversions.cpp ${FLAGS}
 
+paired_anc.o : paired_anc.cpp paired_anc.h
+	$(CXX) -c paired_anc.cpp ${FLAGS}
+
 extractors.o : extractors.cpp extractors.h types.h
 	$(CXX) -c extractors.cpp ${FLAGS}
 
@@ -26,8 +29,8 @@ relateAdmix.o : relateAdmix.h relateAdmix.cpp
 ibAdmix.o : ibAdmix.h ibAdmix.cpp
 	$(CC) -c ibAdmix.cpp ${FLAGS}
 
-Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o
-	$(CXX)  -o ngsRelateAdmix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o ${FLAGS} -lz -lpthread 
+Cinterface : Cinterface.cpp Cinterface.h filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o paired_anc.o
+	$(CXX)  -o NGSremix Cinterface.cpp  filereader_and_conversions.o extractors.o asort.o alloc.o relateAdmix.o kmin.o ibAdmix.o paired_anc.o ${FLAGS} -lz -lpthread 
 
 clean :
-	rm -f *.o ngsRelateAdmix
+	rm -f *.o NGSremix

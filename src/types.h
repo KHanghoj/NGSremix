@@ -409,6 +409,8 @@ typedef struct  { //pars used by ngsrelateadmix
   char *major;
   char *minor;
   char **ids;
+
+  double **Q_paired;
   
   // common  
   double **F;

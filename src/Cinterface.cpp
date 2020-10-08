@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "Cinterface.h"
+#include "paired_anc.h"
 #include <string>
 #include <iomanip>//used for setting number of decimals in posterior
 #include <cstdlib>
@@ -592,7 +593,18 @@ int main(int argc, char *argv[]){
   readDoubleGZ(F,nSites,K,fname,1);
 
   ///////// print header
+  /// testing  
+  int nKs = ((K-1)*K/2+K);
+  double **paired_anc = allocDouble(nInd,nKs);
+  for (int i=0; i<nInd;i++){
+    est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
+    fprintf(stderr, "%d", i);
+    for (int ii=0;ii<nKs;ii++)
+      fprintf(stderr, " %f", paired_anc[i][ii]);
+    fprintf(stderr, "\n");
+  }
 
+  pars->Q_paired = paired_anc;
 
 
   if(!doInbreeding)
