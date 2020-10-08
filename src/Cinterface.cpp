@@ -314,11 +314,14 @@ void *functionC(void *a) //the a means nothing
     int i=p.ind1;
     int j=p.ind2;
     int numIt=0;
-    if(usePlink)
+    if(usePlink){
       relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
-    else if(useBeagle)
-      ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+    }else if(useBeagle){
+      // ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+      ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol);
 
+
+    }
     p.numIter=numIt;
     p.numI[0]=numIt;
     
@@ -598,10 +601,10 @@ int main(int argc, char *argv[]){
   double **paired_anc = allocDouble(nInd,nKs);
   for (int i=0; i<nInd;i++){
     est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-    // fprintf(stderr, "%d", i);
-    // for (int ii=0;ii<nKs;ii++)
-    //   fprintf(stderr, " %f", paired_anc[i][ii]);
-    // fprintf(stderr, "\n");
+    fprintf(stderr, "%d", i);
+    for (int ii=0;ii<nKs;ii++)
+      fprintf(stderr, " %f", paired_anc[i][ii]);
+    fprintf(stderr, "\n");
   }
   pars->Q_paired = paired_anc;
 

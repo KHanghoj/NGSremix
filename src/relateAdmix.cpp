@@ -365,8 +365,8 @@ double ** alloc_and_populate_anc_paired(int K, double *a1){
       if(a11 == a12){
         res[a11][a12] = a1[idx];
       } else {
-        res[a11][a12] = a1[idx] / 2;
-        res[a12][a11] = a1[idx] / 2;        
+        res[a11][a12] = a1[idx]; // / 2;
+        res[a12][a11] = a1[idx]; /// 2;        
       }
       idx++;
     }
@@ -380,21 +380,25 @@ void dealloc_anc_paired(int K, double **a){
   delete[] a;
 }
 
+
+// stupid function
 double get_denom_paired_anc(int &npop, double **a1_paired, double **a2_paired, int &z1, int &z2){
   double res = 0;
   for(int a11=0;a11<npop;a11++){
     for(int a12=0;a12<npop;a12++){
       for(int a21=0;a21<npop;a21++){
         for(int a22=0;a22<npop;a22++){
-          if(a11==a21 || z1 == 0){
-            res += a1_paired[a11][a12] * a2_paired[a21][a22];
-          } else if (a11==a21 || z2 == 0){
+          
+          if((a11==a21 || z1 == 0) && (a12==a22 || z2 == 0)){
+            // if(z1==1 || z2==1)
+            //   fprintf(stderr, "%d %d %d %d %d %d %f %f\n", a11, a21, a12, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22]);
             res += a1_paired[a11][a12] * a2_paired[a21][a22];
           }
         }
       }
     }
   }
+  // fprintf(stderr, "\n%f\n",res);
   return(res);
 
 };
@@ -489,9 +493,8 @@ for(int g22=0; g22<2; g22++){
 
   // if(z2==1)
   //   Pa /= sum2;
-  // ////
+  ////
   double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
-
   double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
   
   int count=0;
@@ -523,7 +526,7 @@ for(int g22=0; g22<2; g22++){
  }}}} // g11,g12,g21,g22
  }}   // z1 and z2
  }}}} // npops
- 
+
 //// the em part
 
  int stepMax = 1;
