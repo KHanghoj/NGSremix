@@ -174,8 +174,6 @@ void est_paired_anc(int nSites, int K, int nKs, double *gl1, double **f, double 
     for(int a11=0;a11<npop;a11++){
       for(int a12=a11;a12<npop;a12++){
         pre_calc[i][idx] = prob_gl_anc_af(&gl1[i*3], f[i][a11], f[i][a12]);
-        // if(i == 0)
-        //   fprintf(stderr, "%d %d %f %f %f %f %f %f\n", i, idx, pre_calc[i][idx], f[i][a11], f[i][a12], gl1[i*3+0], gl1[i*3+1], gl1[i*3+2]);
         idx++;
       }
     }
@@ -189,9 +187,9 @@ void est_paired_anc(int nSites, int K, int nKs, double *gl1, double **f, double 
   double tolStop=0.000001;
   em_anc_paired(tolStop, nSites, nKs, pre_calc, res2, currIter, maxIter);
   double ll = loglike_paired(pre_calc, res2, nSites, nKs);
-  fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
-  print_pars(res2, nKs);
-  fprintf(stderr, "\n");
+  // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
+  // print_pars(res2, nKs);
+  // fprintf(stderr, "\n");
 
 
 

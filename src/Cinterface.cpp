@@ -386,7 +386,7 @@ void *functionIBadmix(void *a) //the a means nothing
     int d = NumJobs-running_job;
     printArray[d]=1;
     if(d%50==0)
-      fprintf(stderr,"\r->running i1:%d llh:%f",allPars[d].ind1,allPars[d].start[1]);  
+      fprintf(stderr,"\r\t-> running i1:%d llh:%f",allPars[d].ind1,allPars[d].start[1]);  
 
     while(cunt<NumJobs){
     
@@ -593,17 +593,16 @@ int main(int argc, char *argv[]){
   readDoubleGZ(F,nSites,K,fname,1);
 
   ///////// print header
-  /// testing  
+  fprintf(stdout,"\t-> Calculating paired ancestry coefficients\n");
   int nKs = ((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);
   for (int i=0; i<nInd;i++){
     est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-    fprintf(stderr, "%d", i);
-    for (int ii=0;ii<nKs;ii++)
-      fprintf(stderr, " %f", paired_anc[i][ii]);
-    fprintf(stderr, "\n");
+    // fprintf(stderr, "%d", i);
+    // for (int ii=0;ii<nKs;ii++)
+    //   fprintf(stderr, " %f", paired_anc[i][ii]);
+    // fprintf(stderr, "\n");
   }
-
   pars->Q_paired = paired_anc;
 
 
@@ -665,19 +664,20 @@ int main(int argc, char *argv[]){
   }// done with inbreeding
   else if(nThreads==1){// relatedness no threads
     double *start=new double[3];
-    fprintf(stderr,"\t->running i1:0 i2:0");  
+    fprintf(stderr,"\t-> running i1:0 i2:0");  
     
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
 	start[0]=0.7;
 	start[1]=0.2;
         start[2]=0.1;
-        fprintf(stderr,"\r->running i1:%d i2:%d",i,j);
-        if(usePlink)
+        fprintf(stderr,"\r\t-> running i1:%d i2:%d",i,j);
+        if(usePlink){
           relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-        else if(useBeagle)
-          ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-        
+        }else if(useBeagle){
+          // ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+          ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],start,pars->F,tol);
+        }
         fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
       }
     }
@@ -749,7 +749,12 @@ int main(int argc, char *argv[]){
   else if (useBeagle)
     killMatrix(pars->dataGL);
   delete[] allPars;
- 
+
+  for (int i=0; i<nInd;i++)
+    delete [] pars->Q_paired[i];
+  delete[] pars->Q_paired;
+    
+  
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
   fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
