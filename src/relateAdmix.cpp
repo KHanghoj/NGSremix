@@ -473,7 +473,7 @@ for(int z2=0; z2<2; z2++){
   double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
   double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
   
-  // fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a21, a12, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
+  fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a12, a21, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
 
 for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
 for(int g12=0; g12<2; g12++){
