@@ -50,6 +50,8 @@ bool usePlink = false;
 bool useBeagle = false;
 bool useGlf = false;
 
+bool COOL_PA = true;
+
 int VERBOSE = 1;
 
 void *relateWrap(void *a){
@@ -440,7 +442,9 @@ int main(int argc, char *argv[]){
   int maxIter=5000;
   
   int numIter=4000;
+  // testing
   double tol=0.00001;
+  // double tol=0.01;
   const char *outname = "ngsrelateadmix.res";
   int autosomeMax = 23;
   // string geno= "";
@@ -500,11 +504,18 @@ int main(int argc, char *argv[]){
     } else if (strcmp(argv[argPos], "-glf")==0){
       glf_file = argv[argPos+1];  // not implemented yet
       useGlf = true;
+    } else if (strcmp(argv[argPos], "-notcool") == 0){   // -notcool 1 disables paired ancestry
+      if (strcmp(argv[argPos+1], "1"))
+        COOL_PA = false;
+      else
+        COOL_PA = true;
     } else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
       return 0;
     }
+
+
     
     argPos+=2;
   }
@@ -595,17 +606,22 @@ int main(int argc, char *argv[]){
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
+  std::string outname2 = strdup(outname);
+  outname2 += ".pairedanc";
   ///////// print header
-  fprintf(stdout,"\t-> Calculating paired ancestry coefficients\n");
+  FILE *fp_paired = fopen(outname2.c_str(), "w");  
+  fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
   int nKs = ((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);
   for (int i=0; i<nInd;i++){
     est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-    fprintf(stderr, "%d", i);
+    fprintf(fp_paired, "%d", i);
     for (int ii=0;ii<nKs;ii++)
-      fprintf(stderr, " %f", paired_anc[i][ii]);
-    fprintf(stderr, "\n");
+      fprintf(fp_paired, " %f", paired_anc[i][ii]);
+    fprintf(fp_paired, "\n");
   }
+  fclose(fp_paired);
+
   pars->Q_paired = paired_anc;
 
 

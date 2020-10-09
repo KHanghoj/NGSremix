@@ -365,8 +365,10 @@ double ** alloc_and_populate_anc_paired(int K, double *a1){
       if(a11 == a12){
         res[a11][a12] = a1[idx];
       } else {
-        res[a11][a12] = a1[idx]; // / 2;
-        res[a12][a11] = a1[idx]; /// 2;        
+        // res[a11][a12] = a1[idx];
+        // res[a12][a11] = a1[idx];
+        res[a11][a12] = a1[idx] / 2;
+        res[a12][a11] = a1[idx] / 2;
       }
       idx++;
     }
@@ -390,8 +392,6 @@ double get_denom_paired_anc(int &npop, double **a1_paired, double **a2_paired, i
         for(int a22=0;a22<npop;a22++){
           
           if((a11==a21 || z1 == 0) && (a12==a22 || z2 == 0)){
-            // if(z1==1 || z2==1)
-            //   fprintf(stderr, "%d %d %d %d %d %d %f %f\n", a11, a21, a12, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22]);
             res += a1_paired[a11][a12] * a2_paired[a21][a22];
           }
         }
@@ -405,7 +405,7 @@ double get_denom_paired_anc(int &npop, double **a1_paired, double **a2_paired, i
 
 void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter, double *gl1, double *gl2, double *a1,double *a2,double *start,double **f,double tol){
 
-
+  
   // make 2d matrix of the Q paired for each indi;
   
   double ** a1_paired = alloc_and_populate_anc_paired(K, a1);
@@ -469,6 +469,12 @@ for(int z1=0; z1<2; z1++){
 for(int z2=0; z2<2; z2++){
   if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
     continue;
+
+  double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
+  double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
+  
+  // fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a21, a12, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
+
 for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
 for(int g12=0; g12<2; g12++){
 for(int g21=0; g21<2; g21++){
@@ -494,8 +500,6 @@ for(int g22=0; g22<2; g22++){
   // if(z2==1)
   //   Pa /= sum2;
   ////
-  double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
-  double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
   
   int count=0;
   for(int i=0;i<nSites;i++){
