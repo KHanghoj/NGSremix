@@ -320,8 +320,10 @@ void *functionC(void *a) //the a means nothing
       relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
     }else if(useBeagle){
       // ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
-      ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol);
-
+      if(COOL_PA)
+        ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol, COOL_PA);
+      else
+        ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol, COOL_PA);        
 
     }
     p.numIter=numIt;
@@ -505,7 +507,7 @@ int main(int argc, char *argv[]){
       glf_file = argv[argPos+1];  // not implemented yet
       useGlf = true;
     } else if (strcmp(argv[argPos], "-notcool") == 0){   // -notcool 1 disables paired ancestry
-      if (strcmp(argv[argPos+1], "1"))
+      if (atoi(argv[argPos+1])==1)
         COOL_PA = false;
       else
         COOL_PA = true;
@@ -606,22 +608,25 @@ int main(int argc, char *argv[]){
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
+  int nKs = ((K-1)*K/2+K);
+  double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
   outname2 += ".pairedanc";
   ///////// print header
-  FILE *fp_paired = fopen(outname2.c_str(), "w");  
-  fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
-  int nKs = ((K-1)*K/2+K);
-  double **paired_anc = allocDouble(nInd,nKs);
-  for (int i=0; i<nInd;i++){
-    est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-    fprintf(fp_paired, "%d", i);
-    for (int ii=0;ii<nKs;ii++)
-      fprintf(fp_paired, " %f", paired_anc[i][ii]);
-    fprintf(fp_paired, "\n");
-  }
-  fclose(fp_paired);
+  if(COOL_PA){
+    FILE *fp_paired = fopen(outname2.c_str(), "w");  
+    fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
 
+
+    for (int i=0; i<nInd;i++){
+      est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
+      fprintf(fp_paired, "%d", i);
+      for (int ii=0;ii<nKs;ii++)
+        fprintf(fp_paired, " %f", paired_anc[i][ii]);
+      fprintf(fp_paired, "\n");
+    }
+    fclose(fp_paired);
+  }
   pars->Q_paired = paired_anc;
 
 
@@ -695,7 +700,11 @@ int main(int argc, char *argv[]){
           relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
         }else if(useBeagle){
           // ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
-          ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],start,pars->F,tol);
+          if(COOL_PA)
+            ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],start,pars->F,tol, COOL_PA);
+          else
+            ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol, COOL_PA);
+
         }
         fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
       }
@@ -769,10 +778,11 @@ int main(int argc, char *argv[]){
     killMatrix(pars->dataGL);
   delete[] allPars;
 
-  for (int i=0; i<nInd;i++)
-    delete [] pars->Q_paired[i];
-  delete[] pars->Q_paired;
-    
+  if(COOL_PA){
+    for (int i=0; i<nInd;i++)
+      delete [] pars->Q_paired[i];
+    delete[] pars->Q_paired;
+  }
   
 
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);

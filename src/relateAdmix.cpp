@@ -403,13 +403,17 @@ double get_denom_paired_anc(int &npop, double **a1_paired, double **a2_paired, i
 
 };
 
-void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter, double *gl1, double *gl2, double *a1,double *a2,double *start,double **f,double tol){
+void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter, double *gl1, double *gl2, double *a1,double *a2,double *start,double **f,double tol, bool cool){
 
   
   // make 2d matrix of the Q paired for each indi;
   
-  double ** a1_paired = alloc_and_populate_anc_paired(K, a1);
-  double ** a2_paired = alloc_and_populate_anc_paired(K, a2);
+  double ** a1_paired; 
+  double ** a2_paired;
+  if(cool){
+    a1_paired = alloc_and_populate_anc_paired(K, a1);
+    a2_paired = alloc_and_populate_anc_paired(K, a2);
+  }
   // fprintf(stderr, "test\n\n");
   // for(int a11=0;a11<K;a11++){
   //   for(int a12=0;a12<K;a12++){
@@ -424,6 +428,38 @@ void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& num
   int *keepSites = new int[nSites];
   int npop=K;
 
+
+  double anc_pair_denom[4];
+
+  if(cool){
+    for(int a=0; a<4;a++)
+      anc_pair_denom[a] = 0;
+
+    for(int z1=0; z1<2; z1++){
+      for(int z2=0; z2<2; z2++){
+        for(int a11=0;a11<npop;a11++){
+          for(int a12=0;a12<npop;a12++){
+            for(int a21=0;a21<npop;a21++){
+              if(z1==1 && a11!=a21) // if two diff ancestral pops. k1 (ordered) is 0
+                continue;
+              for(int a22=0;a22<npop;a22++){
+                if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
+                  continue;
+          
+                if((a11==a21 || z1 == 0) && (a12==a22 || z2 == 0))
+                  anc_pair_denom[z1*2+z2] += a1_paired[a11][a12] * a2_paired[a21][a22];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  // for(int a=0; a<4;a++)
+  //   fprintf(stderr, "%f ", anc_pair_denom[a]);
+  // fprintf(stderr, "\n");
+
+  
   for(int i=0;i<nSites;i++){
     if(is_missing(&gl1[i*3]) || is_missing(&gl2[i*3]))
       keepSites[i] = 0;
@@ -451,18 +487,23 @@ void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& num
     tempPart[i] =0;
 
 for(int a11=0;a11<npop;a11++){
-  // if(a1[a11] <  tol) // || a1[a11] > 1-tol)
-  //   continue;
+  if(!cool && a1[a11] <  tol) // || a1[a11] > 1-tol)
+    continue;
 for(int a12=0;a12<npop;a12++){
-  if(a1_paired[a11][a12] <  tol) // || a1[a12] > 1-tol)
+  if(cool && a1_paired[a11][a12] <  tol) // || a1[a12] > 1-tol)
+    continue;
+  if(!cool && a1[a12] < tol)
     continue;
 for(int a21=0;a21<npop;a21++){
-  // if(a2[a21] <  tol) // || a1[a21] > 1-tol)
-  //   continue;
-for(int a22=0;a22<npop;a22++){
-  if(a2_paired[a21][a22] <  tol) // || a1[a22] > 1-tol)
+  if(!cool && a2[a21] <  tol) // || a1[a21] > 1-tol)
     continue;
-//kh:
+for(int a22=0;a22<npop;a22++){
+  if(cool && a2_paired[a21][a22] <  tol) // || a1[a22] > 1-tol)
+    continue;
+  if(!cool && a2[a22] < tol)
+    continue;
+
+
 for(int z1=0; z1<2; z1++){
   if(z1==1 && a11!=a21) // if two diff ancestral pops. k1 (ordered) is 0
     continue;
@@ -470,10 +511,8 @@ for(int z2=0; z2<2; z2++){
   if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
     continue;
 
-  double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
-  double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
   
-  fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a12, a21, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
+  // fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a12, a21, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
 
 for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
 for(int g12=0; g12<2; g12++){
@@ -485,21 +524,28 @@ for(int g22=0; g22<2; g22++){
     continue;
 
 
-  // /////
-  // double Pa = a1[a11]*a1[a12]*a2[a21]*a2[a22]; // this has to be fixed
-  
-  // double sum1=0, sum2 = 0;
-  // for(int k=0;k<npop;k++){
-  //   sum1+=a1[k]*a2[k];
-  //   sum2+=a1[k]*a2[k];      
-  // }
+  // double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
+  // double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
 
-  // if(z1==1)
-  //   Pa /= sum1;
-
-  // if(z2==1)
-  //   Pa /= sum2;
-  ////
+  // if cool method
+  double Pa = 0;
+  if(cool){
+    Pa =  a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[z1*2+z2];
+  }else{
+    Pa = a1[a11]*a1[a12]*a2[a21]*a2[a22]; // this has to be fixed
+    
+    double sum1=0, sum2 = 0;
+    for(int k=0;k<npop;k++){
+      sum1+=a1[k]*a2[k];
+      sum2+=a1[k]*a2[k];      
+    }
+    
+    if(z1==1)
+      Pa /= sum1;
+    
+    if(z2==1)
+      Pa /= sum2;    
+  }
   
   int count=0;
   for(int i=0;i<nSites;i++){
@@ -681,9 +727,10 @@ for(int j=0;j<3;j++)
 delete[] tempPart;
 delete[] keepSites;
 
- dealloc_anc_paired(K, a1_paired);
- dealloc_anc_paired(K, a2_paired); 
- 
+ if(cool){
+   dealloc_anc_paired(K, a1_paired);
+   dealloc_anc_paired(K, a2_paired); 
+ }
 }
 
 
