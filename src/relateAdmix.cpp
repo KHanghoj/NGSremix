@@ -2,8 +2,44 @@
 #include <fstream>
 #include <cmath>
 
+int is_missing(double *ary){
+  if(fabs(ary[0] - ary[1])<1e-6 && fabs(ary[0] - ary[2])<1e-6 && fabs(ary[1] - ary[2])<1e-6)
+    return 1;
+  else
+    return 0;
+}
 
-void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter,int *geno1,int *geno2, double *a1,double *a2,double *start,double **f,double tol){
+bool is_nan(double x) { return x != x; }
+
+double ** alloc_and_populate_anc_paired(int K, double *a1){
+
+  double ** res = new double*[K];
+  for(int a11=0;a11<K;a11++){
+    res[a11] = new double[K];
+  }
+  int idx = 0;
+  for(int a11=0;a11<K;a11++){
+    for(int a12=a11;a12<K;a12++){
+      if(a11 == a12){
+        res[a11][a12] = a1[idx];
+      } else {
+        res[a11][a12] = a1[idx] / 2;
+        res[a12][a11] = a1[idx] / 2;
+      }
+      idx++;
+    }
+  }
+  return res;
+}
+
+void dealloc_anc_paired(int K, double **a){
+  for(int a11=0;a11<K;a11++)
+    delete[] a[a11];
+  delete[] a;
+}
+
+
+void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter,int *geno1,int *geno2, double *a1,double *a2,double *start,double **f,double tol, bool cool){
 
 
   int print=0;
@@ -11,6 +47,42 @@ void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIte
   int *keepSites = new int[nSites];
   int npop=K;
 
+
+  double ** a1_paired; 
+  double ** a2_paired;
+  if(cool){
+    a1_paired = alloc_and_populate_anc_paired(K, a1);
+    a2_paired = alloc_and_populate_anc_paired(K, a2);
+  }
+
+  double anc_pair_denom[4];
+
+  if(cool){
+    for(int a=0; a<4;a++)
+      anc_pair_denom[a] = 0;
+
+    for(int z1=0; z1<2; z1++){
+      for(int z2=0; z2<2; z2++){
+        for(int a11=0;a11<npop;a11++){
+          for(int a12=0;a12<npop;a12++){
+            for(int a21=0;a21<npop;a21++){
+              if(z1==1 && a11!=a21) // if two diff ancestral pops. k1 (ordered) is 0
+                continue;
+              for(int a22=0;a22<npop;a22++){
+                if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
+                  continue;
+          
+                if((a11==a21 || z1 == 0) && (a12==a22 || z2 == 0))
+                  anc_pair_denom[z1*2+z2] += a1_paired[a11][a12] * a2_paired[a21][a22];
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  
   for(int i=0;i<nSites;i++){
     if(geno1[i]==3 || geno2[i]==3)
       keepSites[i] = 0;
@@ -47,7 +119,7 @@ int* g22=new int[nSites];
 double* tempPart=new double[totSites*3];
 for(int i=0;i<totSites*3;i++)
   tempPart[i] =0;
-
+ 
 
 
 ////////// prep for speed 1
@@ -108,7 +180,7 @@ double* Pm22=new double[nSites*npop];
 // return(ans);
 
 
-
+ if (!cool){
 for(int a11=0;a11<npop;a11++){
   if(a1[a11] <  tol)
     continue;
@@ -144,10 +216,11 @@ for(int a22=0;a22<npop;a22++){
  
     if(keepSites[i]==0)    
       continue;
+    
     tempPart[0*totSites + count] += Pa0*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
     if(g11[i]==g21[i] &k1keep)
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
-    //      tempPart[2*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+    //tempPart[2*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
     if(g12[i]==g22[i] & k2keep){
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i];//k1=0 k2=1
       if(g11[i]==g21[i] &k1keep)
@@ -157,6 +230,66 @@ for(int a22=0;a22<npop;a22++){
 
   }
  }}}}
+ } else if (cool){
+for(int a11=0;a11<npop;a11++){
+for(int a12=0;a12<npop;a12++){
+  if(a1_paired[a11][a12] <  tol) // || a1[a12] > 1-tol)
+    continue;
+for(int a21=0;a21<npop;a21++){
+for(int a22=0;a22<npop;a22++){
+  if(a2_paired[a21][a22] <  tol) // || a1[a22] > 1-tol)
+    continue;
+
+  double Pa00 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+0];
+  double Pa01 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+1];
+  double Pa10 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+0];
+  double Pa11 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+1];
+    
+  
+  int k1keep =1;
+  int k2keep =1;
+  if(a11!=a21)
+    k1keep=0;
+  if(a12!=a22)
+    k2keep=0;
+  int count=0;
+  for(int i=0;i<nSites;i++){
+    // probablity of data
+    
+    if(keepSites[i]==0)    
+      continue;
+    
+    tempPart[0*totSites + count] += Pa00*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
+    if(g11[i] == g21[i] && k1keep){
+      tempPart[1*totSites + count] += Pa10*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+    }
+
+    if(g12[i] == g22[i] && k2keep){
+      tempPart[1*totSites + count] += Pa01*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=0 k2=1
+
+      if(g11[i]==g21[i] && k1keep)
+	tempPart[2*totSites + count] += Pa11*Pm11[a11*nSites+i]*Pm21[a12*nSites+i];//k1=1 k2=1     
+      
+    }
+    // tempPart[0*totSites + count] += Pa0*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];    
+    // if(g11[i]==g21[i] &k1keep)
+    //   tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+    // //tempPart[2*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+    // if(g12[i]==g22[i] & k2keep){
+    //   tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i];//k1=0 k2=1
+    //   if(g11[i]==g21[i] &k1keep)
+    //     tempPart[2*totSites + count] += Pa2*Pm11[a11*nSites+i]*Pm21[a12*nSites+i];//k1=1 k2=1
+    // }
+    count++;
+    
+  } // sites
+  
+ }}}}   // anc pops
+ } // cool
+  
+ 
+
+ 
  int count = 0;
  for(int i=0;i<nSites;i++){
    int mult = 1;
@@ -342,66 +475,14 @@ delete[] Pm12;
 delete[] Pm22;
 delete[] keepSites;
 
+ if(cool){
+   dealloc_anc_paired(K, a1_paired);
+   dealloc_anc_paired(K, a2_paired); 
+ }
+
+ 
 }
 
-int is_missing(double *ary){
-  if(fabs(ary[0] - ary[1])<1e-6 && fabs(ary[0] - ary[2])<1e-6 && fabs(ary[1] - ary[2])<1e-6)
-    return 1;
-  else
-    return 0;
-}
-
-bool is_nan(double x) { return x != x; }
-
-double ** alloc_and_populate_anc_paired(int K, double *a1){
-
-  double ** res = new double*[K];
-  for(int a11=0;a11<K;a11++){
-    res[a11] = new double[K];
-  }
-  int idx = 0;
-  for(int a11=0;a11<K;a11++){
-    for(int a12=a11;a12<K;a12++){
-      if(a11 == a12){
-        res[a11][a12] = a1[idx];
-      } else {
-        // res[a11][a12] = a1[idx];
-        // res[a12][a11] = a1[idx];
-        res[a11][a12] = a1[idx] / 2;
-        res[a12][a11] = a1[idx] / 2;
-      }
-      idx++;
-    }
-  }
-  return res;
-}
-
-void dealloc_anc_paired(int K, double **a){
-  for(int a11=0;a11<K;a11++)
-    delete[] a[a11];
-  delete[] a;
-}
-
-
-// stupid function
-double get_denom_paired_anc(int &npop, double **a1_paired, double **a2_paired, int &z1, int &z2){
-  double res = 0;
-  for(int a11=0;a11<npop;a11++){
-    for(int a12=0;a12<npop;a12++){
-      for(int a21=0;a21<npop;a21++){
-        for(int a22=0;a22<npop;a22++){
-          
-          if((a11==a21 || z1 == 0) && (a12==a22 || z2 == 0)){
-            res += a1_paired[a11][a12] * a2_paired[a21][a22];
-          }
-        }
-      }
-    }
-  }
-  // fprintf(stderr, "\n%f\n",res);
-  return(res);
-
-};
 
 void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter, double *gl1, double *gl2, double *a1,double *a2,double *start,double **f,double tol, bool cool){
 

@@ -32,6 +32,23 @@ double prob_gl_anc_af(double *gl1, double f1, double f2){
   return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
 }
 
+double prob_gt_anc_af(int gt1, double f1, double f2){
+
+  double p_af;
+
+  if(gt1==0){
+    p_af = f1 * f2;
+  }else if (gt1==1){
+    p_af = (f1 * (1-f2) + f2 * (1-f1));
+  }else if (gt1 == 2){
+    p_af = (1-f1) * (1-f2);
+  }else if(gt1==3){ // missing
+    p_af = 0;
+  }
+
+  return p_af * gt1;
+}
+
 
 void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, double *res2, int &numIter, int nIter){
   int useSq = 1;
@@ -114,7 +131,7 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
       }
 
       //Stop the algorithm if the step size less than tolStop
-      if(sqrt(sr2)<tolStop || sqrt(sq2)<tolStop || (p1[0]>0.999 & q2[0]>0)){
+      if(sqrt(sr2)<tolStop || sqrt(sq2)<tolStop || (p1[0]>0.999 && q2[0]>0)){
         tolStop=sr2;
         break;
       }
@@ -157,14 +174,13 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
       for(int j=0;j<nKs;j++)
         p1[j] = x[j];
     }
-
   }
 
   for(int j=0;j<nKs;j++)
     res2[j] = x[j];
 }
 
-void est_paired_anc(int nSites, int K, int nKs, double *gl1, double **f, double *res2){
+void est_paired_anc_gl(int nSites, int K, int nKs, double *gl1, double **f, double *res2){
 
   int npop = K;
   double** pre_calc = new double*[nSites];
@@ -186,7 +202,7 @@ void est_paired_anc(int nSites, int K, int nKs, double *gl1, double **f, double 
   int currIter = 0;
   double tolStop=0.000001;
   em_anc_paired(tolStop, nSites, nKs, pre_calc, res2, currIter, maxIter);
-  double ll = loglike_paired(pre_calc, res2, nSites, nKs);
+  // double ll = loglike_paired(pre_calc, res2, nSites, nKs);
   // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
   // print_pars(res2, nKs);
   // fprintf(stderr, "\n");
@@ -198,4 +214,43 @@ void est_paired_anc(int nSites, int K, int nKs, double *gl1, double **f, double 
   for(int i=0;i<nSites;i++)
     delete[] pre_calc[i];
   delete[] pre_calc;
+}
+
+
+void est_paired_anc_gt(int nSites, int K, int nKs, int *gt1, double **f, double *res2){
+
+  int npop = K;
+  double** pre_calc = new double*[nSites];
+  for(int i=0;i<nSites;i++){
+    pre_calc[i] = new double[nKs];
+    int idx = 0;
+    for(int a11=0; a11<npop; a11++){
+      for(int a12=a11; a12<npop; a12++){
+        pre_calc[i][idx] = prob_gt_anc_af(gt1[i], f[i][a11], f[i][a12]);
+        idx++;
+      }
+    }
+  }
+
+
+
+
+  int maxIter = 5000;
+  int currIter = 0;
+  double tolStop=0.000001;
+  em_anc_paired(tolStop, nSites, nKs, pre_calc, res2, currIter, maxIter);
+  // double ll = loglike_paired(pre_calc, res2, nSites, nKs);
+  // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
+  // print_pars(res2, nKs);
+  // fprintf(stderr, "\n");
+
+
+
+
+  // clean up
+  for(int i=0;i<nSites;i++)
+    delete[] pre_calc[i];
+  delete[] pre_calc;
+
+
 }

@@ -9,6 +9,8 @@
 #include <sstream>
 #include <cstring>
 #include <vector>
+#include <algorithm> // std::find
+#include <iostream> // stringstream
 #include <sys/stat.h>
 #ifndef _types_h
 #define _types_h
@@ -49,6 +51,7 @@ eachPars *allPars = NULL;
 bool usePlink = false;
 bool useBeagle = false;
 bool useGlf = false;
+std::vector<int> sample_keep;
 
 bool COOL_PA = true;
 
@@ -75,7 +78,7 @@ void *relateWrap(void *a){
 fprintf(stderr,"%f\n",p->start[0]);
   */
   //if(doInbreeding==0)
-  relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol);
+  relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol, COOL_PA);
   //  else
   //    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
   p->numIter=numIt;
@@ -317,9 +320,11 @@ void *functionC(void *a) //the a means nothing
     int j=p.ind2;
     int numIt=0;
     if(usePlink){
-      relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
+      if(COOL_PA)
+        relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol, COOL_PA);
+      else
+        relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol, COOL_PA);
     }else if(useBeagle){
-      // ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
       if(COOL_PA)
         ngsrelateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol, COOL_PA);
       else
@@ -343,7 +348,7 @@ void *functionC(void *a) //the a means nothing
       if(printArray[cunt]==0)
 	break;
 
-      fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
+      fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
       //fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0],cunt);
         cunt++;
     }
@@ -411,7 +416,21 @@ void *functionIBadmix(void *a) //the a means nothing
   return NULL;
 }
 
+std::vector<int> parse_string(std::string & str, char delim){
+  std::vector<int> result;
+  std::stringstream ss(str);
+  while( ss.good() )
+{
+    string substr;
+    std::getline( ss, substr, delim );
+    result.push_back( atoi(substr.c_str()) );
+}
+  return result;
+}
 
+bool vec_contains(std::vector<int> &vec, int &tok){
+  return (std::find(vec.begin(), vec.end(), tok)!=vec.end());
+}
 
 
 void fex(const char* fileName){
@@ -511,7 +530,17 @@ int main(int argc, char *argv[]){
         COOL_PA = false;
       else
         COOL_PA = true;
-    } else{
+    } else if(strcmp(argv[argPos], "-select") == 0){
+      std::string str = string(argv[argPos+1]);
+      sample_keep = parse_string(str, ',');
+      if(sample_keep.size()<2){
+        fprintf(stderr, "-select must contain at least two indices (Comma separated, 1-based) - EXITING\n");
+        exit(0);
+      }
+      // make the zero-based
+      for(size_t i=0; i<sample_keep.size();i++)
+        sample_keep[i] -= 1;
+    }else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
       return 0;
@@ -590,6 +619,9 @@ int main(int argc, char *argv[]){
     // fucked. no file is used.
     exit(0);
   }
+
+
+  
   
   int K=getK(qname);
   fprintf(stderr,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
@@ -612,15 +644,21 @@ int main(int argc, char *argv[]){
   double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
   outname2 += ".pairedanc";
-  ///////// print header
+
   if(COOL_PA){
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
     fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
 
-
     for (int i=0; i<nInd;i++){
-      est_paired_anc(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-      fprintf(fp_paired, "%d", i);
+
+      if(!vec_contains(sample_keep, i))
+        continue;
+      
+      if(useBeagle)
+        est_paired_anc_gl(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
+      if(usePlink)
+        est_paired_anc_gt(pars->nSites, K, nKs, pars->data->matrix[i], pars->F, paired_anc[i]);
+      fprintf(fp_paired, "%d", i+1);
       for (int ii=0;ii<nKs;ii++)
         fprintf(fp_paired, " %f", paired_anc[i][ii]);
       fprintf(fp_paired, "\n");
@@ -629,11 +667,9 @@ int main(int argc, char *argv[]){
   }
   pars->Q_paired = paired_anc;
 
-
+  ///////// print header
   if(!doInbreeding)
     fprintf(fp,"ind1\tind2\tk0\tk1\tk2\tnIter\n");
-
-
 
   if(doInbreeding){//inbreeding
     fprintf(fp,"ind\tF\tllh\t\tnIter\n");
@@ -692,28 +728,44 @@ int main(int argc, char *argv[]){
     
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
+
+        if(!vec_contains(sample_keep, i))
+          continue;
+        if(!vec_contains(sample_keep, j))
+          continue;
+
+        
 	start[0]=0.7;
 	start[1]=0.2;
         start[2]=0.1;
         fprintf(stderr,"\r\t-> running i1:%d i2:%d",i,j);
         if(usePlink){
-          relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
+          if(COOL_PA)
+            relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q_paired[i],pars->Q_paired[j],start,pars->F,tol, COOL_PA);
+          else
+            relateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol, COOL_PA);
         }else if(useBeagle){
-          // ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol);
           if(COOL_PA)
             ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q_paired[i],pars->Q_paired[j],start,pars->F,tol, COOL_PA);
           else
             ngsrelateAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->dataGL->matrix[i],pars->dataGL->matrix[j],pars->Q[i],pars->Q[j],start,pars->F,tol, COOL_PA);
 
         }
-        fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i,j,start[0],start[1],start[2],numIter);
+        fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",i+1,j+1,start[0],start[1],start[2],numIter);
       }
     }
     delete[] start;
   }else{ // with threads (the cool way)
 
-    NumJobs = nInd*(nInd-1)/2;
-    jobs =  nInd*(nInd-1)/2;
+    if(sample_keep.empty()){
+      NumJobs = nInd*(nInd-1)/2;
+      jobs =  nInd*(nInd-1)/2;
+    } else{
+      int tmp_nInd = sample_keep.size();
+      NumJobs = tmp_nInd*(tmp_nInd-1)/2;
+      jobs =  tmp_nInd*(tmp_nInd-1)/2;
+
+    }
     cunt = 0;
     allPars = new eachPars[NumJobs];
 
@@ -721,6 +773,11 @@ int main(int argc, char *argv[]){
     int cunter=0;
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
+        if(!vec_contains(sample_keep, i))
+          continue;
+        if(!vec_contains(sample_keep, j))
+          continue;
+        
 	indMatrix[cunter*2]=i;
 	indMatrix[cunter*2+1]=j;
 	cunter++;
