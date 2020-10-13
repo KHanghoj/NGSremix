@@ -82,6 +82,11 @@ void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIte
     }
   }
 
+
+  // for(int a=0; a<4;a++)
+  //   fprintf(stderr, "%f ", anc_pair_denom[a]);
+  // fprintf(stderr, "\n");
+
   
   for(int i=0;i<nSites;i++){
     if(geno1[i]==3 || geno2[i]==3)
@@ -218,12 +223,12 @@ for(int a22=0;a22<npop;a22++){
       continue;
     
     tempPart[0*totSites + count] += Pa0*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
-    if(g11[i]==g21[i] &k1keep)
+    if(g11[i]==g21[i] &&k1keep)
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
     //tempPart[2*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
-    if(g12[i]==g22[i] & k2keep){
+    if(g12[i]==g22[i] && k2keep){
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i];//k1=0 k2=1
-      if(g11[i]==g21[i] &k1keep)
+      if(g11[i]==g21[i] &&k1keep)
 	tempPart[2*totSites + count] += Pa2*Pm11[a11*nSites+i]*Pm21[a12*nSites+i];//k1=1 k2=1
     }
     count++;
@@ -240,10 +245,10 @@ for(int a22=0;a22<npop;a22++){
   if(a2_paired[a21][a22] <  tol) // || a1[a22] > 1-tol)
     continue;
 
-  double Pa00 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+0];
-  double Pa01 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+1];
-  double Pa10 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+0];
-  double Pa11 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+1];
+  double Pa00 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+0]; // z1=0 z2=0
+  double Pa01 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[0*2+1]; // z1=0 z2=1
+  double Pa10 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+0]; // z1=1 z2=0
+  double Pa11 = a1_paired[a11][a12] * a2_paired[a21][a22] / anc_pair_denom[1*2+1]; // z1=1 z2=1
     
   
   int k1keep =1;
@@ -259,16 +264,18 @@ for(int a22=0;a22<npop;a22++){
     if(keepSites[i]==0)    
       continue;
     
-    tempPart[0*totSites + count] += Pa00*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
+    // tempPart[0*totSites + count] += Pa00*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
+    // tempPart[0*totSites + count] += Pa00*Pm11[a11*nSites+i]*Pm12[a12*nSites+i]*Pm21[a21*nSites+i]*Pm22[a22*nSites+i]; 
+    tempPart[0*totSites + count] += Pa00*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];   
     if(g11[i] == g21[i] && k1keep){
-      tempPart[1*totSites + count] += Pa10*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+      tempPart[1*totSites + count] += Pa10*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0      
     }
 
     if(g12[i] == g22[i] && k2keep){
-      tempPart[1*totSites + count] += Pa01*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=0 k2=1
+      tempPart[1*totSites + count] += Pa01*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i];//k1=0 k2=1      
 
       if(g11[i]==g21[i] && k1keep)
-	tempPart[2*totSites + count] += Pa11*Pm11[a11*nSites+i]*Pm21[a12*nSites+i];//k1=1 k2=1     
+	tempPart[2*totSites + count] += Pa11*Pm11[a11*nSites+i]*Pm21[a12*nSites+i];//k1=1 k2=1
       
     }
     // tempPart[0*totSites + count] += Pa0*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];    

@@ -621,7 +621,13 @@ int main(int argc, char *argv[]){
   }
 
 
-  
+  int *keepSamples = new int[nInd];
+  for(int i=0; i<nInd; i++){
+    if(!sample_keep.empty() && !vec_contains(sample_keep, i))
+      keepSamples[i] = 0;
+    else
+      keepSamples[i] = 1;
+  }
   
   int K=getK(qname);
   fprintf(stderr,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
@@ -650,13 +656,12 @@ int main(int argc, char *argv[]){
     fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
 
     for (int i=0; i<nInd;i++){
-
-      if(!vec_contains(sample_keep, i))
+      if(keepSamples[i]==0)
         continue;
-      
+
       if(useBeagle)
         est_paired_anc_gl(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
-      if(usePlink)
+      else if(usePlink)
         est_paired_anc_gt(pars->nSites, K, nKs, pars->data->matrix[i], pars->F, paired_anc[i]);
       fprintf(fp_paired, "%d", i+1);
       for (int ii=0;ii<nKs;ii++)
@@ -729,11 +734,10 @@ int main(int argc, char *argv[]){
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
 
-        if(!vec_contains(sample_keep, i))
+        if(keepSamples[i]==0)
           continue;
-        if(!vec_contains(sample_keep, j))
+        if(keepSamples[j]==0)
           continue;
-
         
 	start[0]=0.7;
 	start[1]=0.2;
@@ -773,9 +777,9 @@ int main(int argc, char *argv[]){
     int cunter=0;
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
-        if(!vec_contains(sample_keep, i))
+        if(keepSamples[i]==0)
           continue;
-        if(!vec_contains(sample_keep, j))
+        if(keepSamples[j]==0)
           continue;
         
 	indMatrix[cunter*2]=i;
@@ -841,7 +845,8 @@ int main(int argc, char *argv[]){
     delete[] pars->Q_paired;
   }
   
-
+  delete[] keepSamples;
+  
   fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
   fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
   fprintf(stderr, "\t[ALL done] results have been outputted to %s\n",outname);
