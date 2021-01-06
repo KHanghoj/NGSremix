@@ -11,7 +11,7 @@ void print_pars(double *par, int n){
   fprintf(stderr, "\n");
 }
 
-double loglike_paired(double **l, double *pars, int nSites, int nKs){
+double loglike_paired(double **l, double *pars, int & nSites, int & nKs){
   double res=0;
   for(int i=0;i<nSites;i++){
     double temp = 0;
@@ -22,7 +22,7 @@ double loglike_paired(double **l, double *pars, int nSites, int nKs){
   return(res);
 }
 
-double prob_gl_anc_af(double *gl1, double f1, double f2){
+double prob_gl_anc_af(double *gl1, double & f1, double & f2){
   double p_g0fa = f1 *f2;
   double p_g1fa = f1 * (1-f2) + f2 * (1-f1);
   double p_g2fa = (1-f1) * (1-f2);
@@ -32,7 +32,7 @@ double prob_gl_anc_af(double *gl1, double f1, double f2){
   return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
 }
 
-double prob_gt_anc_af(int gt1, double f1, double f2){
+double prob_gt_anc_af(int &gt1, double & f1, double & f2){
 
   double p_af;
 
@@ -122,7 +122,7 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
       sv2=0;
 
       //get stop sizes
-      for(int j=0;j<3;j++){
+      for(int j=0;j<nKs;j++){
         q1[j] = p1[j] - p0[j];
         sr2+= q1[j]*q1[j];
         q2[j] = x[j] - p1[j];
@@ -131,7 +131,16 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
       }
 
       //Stop the algorithm if the step size less than tolStop
-      if(sqrt(sr2)<tolStop || sqrt(sq2)<tolStop || (p1[0]>0.999 && q2[0]>0)){
+      bool conv_bool = false;
+      for (int j=0;j<nKs;j++){
+        if((p1[j]>0.999 && q2[j]>0)){
+          conv_bool=true;
+          break;
+        }
+      }
+
+
+      if(sqrt(sr2)<tolStop || sqrt(sq2)<tolStop || conv_bool){
         tolStop=sr2;
         break;
       }
@@ -144,19 +153,23 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
         alpha=1;
 
       //the magical step
-      for(int j=0;j<3;j++)
+      for(int j=0;j<nKs;j++)
         x[j] = p0[j] + 2 * alpha * q1[j] + alpha*alpha * (q2[j] - q1[j]);
 
       //in the rare instans that the boundarys are crossed. map into [ttol,1-ttol]
-      for(int j=0;j<3;j++){
+      for(int j=0;j<nKs;j++){
         if(x[j]<ttol)
           x[j]=ttol;
         if(x[j]>1-ttol)
           x[j]=1-ttol;
 
       }
-      norma=x[0]+x[1]+x[2];
-      for(int j=0;j<3;j++)
+
+      norma = 0;
+      for(int j=0;j<nKs;j++)
+        norma += x[j];
+
+      for(int j=0;j<nKs;j++)
         x[j] /= norma;
 
       //change step size
@@ -188,7 +201,7 @@ int is_missing2(double *ary){
 }
 
 
-void est_paired_anc_gl(int nSites, int K, int nKs, double *gl1, double **f, double *res2){
+int est_paired_anc_gl(int nSites, int K, int nKs, double *gl1, double **f, double *res2){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
@@ -232,10 +245,11 @@ void est_paired_anc_gl(int nSites, int K, int nKs, double *gl1, double **f, doub
     delete[] pre_calc[i];
   delete[] pre_calc;
   delete[] keeplist;
+  return currIter;
 }
 
 
-void est_paired_anc_gt(int nSites, int K, int nKs, int *gt1, double **f, double *res2){
+int est_paired_anc_gt(int nSites, int K, int nKs, int *gt1, double **f, double *res2){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
@@ -282,5 +296,5 @@ void est_paired_anc_gt(int nSites, int K, int nKs, int *gt1, double **f, double 
     delete[] pre_calc[i];
   delete[] pre_calc;
   delete[] keeplist;
-
+  return currIter;
 }

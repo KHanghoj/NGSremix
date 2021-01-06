@@ -658,15 +658,15 @@ int main(int argc, char *argv[]){
     for (int i=0; i<nInd;i++){
       if(keepSamples[i]==0)
         continue;
-
+      int paired_iter;
       if(useBeagle)
-        est_paired_anc_gl(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
+        paired_iter = est_paired_anc_gl(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
       else if(usePlink)
-        est_paired_anc_gt(pars->nSites, K, nKs, pars->data->matrix[i], pars->F, paired_anc[i]);
+        paired_iter = est_paired_anc_gt(pars->nSites, K, nKs, pars->data->matrix[i], pars->F, paired_anc[i]);
       fprintf(fp_paired, "%d", i+1);
       for (int ii=0;ii<nKs;ii++)
         fprintf(fp_paired, " %f", paired_anc[i][ii]);
-      fprintf(fp_paired, "\n");
+      fprintf(fp_paired, " %d\n", paired_iter);
     }
     fclose(fp_paired);
   }
