@@ -306,6 +306,7 @@ void info(){
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
   fprintf(stderr,"\t-seed [uint]\n");
+  fprintf(stderr,"\t-select [Comma separated, 1-based indexes]\n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
