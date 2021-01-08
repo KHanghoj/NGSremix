@@ -542,7 +542,8 @@ void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& num
         }
       }
     }
-  }
+  } // end cool
+  
   // for(int a=0; a<4;a++)
   //   fprintf(stderr, "%f ", anc_pair_denom[a]);
   // fprintf(stderr, "\n");

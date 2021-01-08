@@ -45,6 +45,7 @@ int *printArray;
 FILE *fp;
 int cunt;
 int doInbreeding =0;
+int MYSEED = 999999;
 
 eachPars *allPars = NULL;
 
@@ -178,6 +179,17 @@ int ncols(std::string & row){
   return ret;
 }
 
+void init_param(double * start, const int n){
+  double sum=0;
+  for (int j=0; j<n; j++){
+    start[j] = drand48();
+    sum += start[j];
+  }
+
+  for (int j=0; j<n; j++)
+    start[j] /= sum;
+}
+
 void readBeagle(const char *fname, myPars *pars){
   const char *delims = "\t \n";
   
@@ -293,6 +305,7 @@ void info(){
 
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
+  fprintf(stderr,"\t-seed [uint]\n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
@@ -540,6 +553,8 @@ int main(int argc, char *argv[]){
       // make the zero-based
       for(size_t i=0; i<sample_keep.size();i++)
         sample_keep[i] -= 1;
+    } else if(strcmp(argv[argPos], "-seed") == 0){
+      MYSEED = atoi(argv[argPos+1]);    
     }else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
@@ -566,6 +581,19 @@ int main(int argc, char *argv[]){
   int nSites;
   myPars *pars =  new myPars();  
 
+
+  srand(time(NULL));
+  if (MYSEED ==  999999){
+    MYSEED=rand();
+  }
+  fprintf(stderr,"\t-> Seed is: %d\n",MYSEED);
+  srand48(MYSEED);
+  //  srand(MYSEED);
+
+  // now set variables with   fprintf(stderr, "%f", drand48());
+  // using drand48();
+  
+  
   if(useBeagle){
     // read beagle and transpose to nInd * nsites*3
     readBeagle(beagle_file.c_str(), pars);
@@ -729,6 +757,7 @@ int main(int argc, char *argv[]){
   }// done with inbreeding
   else if(nThreads==1){// relatedness no threads
     double *start=new double[3];
+    
     fprintf(stderr,"\t-> running i1:0 i2:0");  
     
     for(int i=0;i<nInd-1;i++){
@@ -738,10 +767,12 @@ int main(int argc, char *argv[]){
           continue;
         if(keepSamples[j]==0)
           continue;
-        
-	start[0]=0.7;
-	start[1]=0.2;
-        start[2]=0.1;
+
+        // GO HERE
+        init_param(start, 3);
+	// start[0]=0.7;
+	// start[1]=0.2;
+        // start[2]=0.1;
         fprintf(stderr,"\r\t-> running i1:%d i2:%d",i,j);
         if(usePlink){
           if(COOL_PA)
@@ -794,9 +825,12 @@ int main(int argc, char *argv[]){
     
       double *start=new double[3];
       int *numI=new int[1];
-      start[0]=0.7;
-      start[1]=0.2;
-      start[2]=0.1;
+
+      // GO HERE
+      init_param(start, 3);
+      // start[0]=0.7;
+      // start[1]=0.2;
+      // start[2]=0.1;
       int i=indMatrix[c*2];
       int j=indMatrix[c*2+1];
       
