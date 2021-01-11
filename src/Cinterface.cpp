@@ -87,7 +87,7 @@ fprintf(stderr,"%f\n",p->start[0]);
 }
 
 void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
-  fprintf(stderr,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
+  fprintf(stdout,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
   gzFile fp = NULL;
   if((fp=gzopen(fname,"r"))==NULL){
@@ -122,7 +122,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
 }
 
 void readDouble(double **d,int x,int y,const char*fname,int neg){
-  fprintf(stderr,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
+  fprintf(stdout,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
   FILE *fp = NULL;
   if((fp=fopen(fname,"r"))==NULL){
@@ -480,7 +480,7 @@ int main(int argc, char *argv[]){
   // testing
   double tol=0.00001;
   // double tol=0.01;
-  const char *outname = "ngsrelateadmix.res";
+  const char *outname = "ngsremix.res";
   int autosomeMax = 23;
   // string geno= "";
   // string pos = "";
@@ -587,7 +587,7 @@ int main(int argc, char *argv[]){
   if (MYSEED ==  999999){
     MYSEED=rand();
   }
-  fprintf(stderr,"\t-> Seed is: %d\n",MYSEED);
+  fprintf(stdout,"\t-> Seed is: %d\n",MYSEED);
   srand48(MYSEED);
   //  srand(MYSEED);
 
@@ -659,7 +659,7 @@ int main(int argc, char *argv[]){
   }
   
   int K=getK(qname);
-  fprintf(stderr,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
+  fprintf(stdout,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
   pars->maxIter=maxIter;
   pars->tol=tol;
   pars->tolStop=tolStop;
@@ -882,9 +882,9 @@ int main(int argc, char *argv[]){
   
   delete[] keepSamples;
   
-  fprintf(stderr, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
-  fprintf(stderr, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
-  fprintf(stderr, "\t[ALL done] results have been outputted to %s\n",outname);
+  fprintf(stdout, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+  fprintf(stdout, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
+  fprintf(stdout, "\t[ALL done] results have been outputted to %s\n",outname);
 
   
 
