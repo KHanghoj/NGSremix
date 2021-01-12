@@ -207,7 +207,7 @@ void readBeagle(const char *fname, myPars *pars){
   gzFile fp = gzopen(fname, "rb");
   if (fp==Z_NULL){
 
-    fprintf(stdout,"\n\nERROR: '%s' cannot open file: %s\n\n", __FUNCTION__,fname);
+    fprintf(stderr,"\n\nERROR: '%s' cannot open file: %s\n\n", __FUNCTION__,fname);
     exit(0);
   };
 
@@ -224,8 +224,8 @@ void readBeagle(const char *fname, myPars *pars){
     nlines++;
 
     if(VERBOSE){
-      if(nlines % 10000 == 0)
-        fprintf(stdout, "\t-> Beagle - %d sites processed\r", nlines);
+      if(nlines % 100000 == 0)
+        fprintf(stderr, "\t-> Beagle - %d sites processed\r", nlines);
     }
     
   }
@@ -306,11 +306,9 @@ void info(){
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
   fprintf(stderr,"\t-seed [uint]\n");
-  fprintf(stderr,"\t-select [Comma separated, 1-based indexes]\n");
+  fprintf(stderr,"\t-select [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]\n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
-
-
 
   exit(0);
 
@@ -430,15 +428,34 @@ void *functionIBadmix(void *a) //the a means nothing
   return NULL;
 }
 
-std::vector<int> parse_string(std::string & str, char delim){
+std::vector<int> parse_select_string(std::string & str){
   std::vector<int> result;
   std::stringstream ss(str);
-  while( ss.good() )
-{
-    string substr;
-    std::getline( ss, substr, delim );
-    result.push_back( atoi(substr.c_str()) );
-}
+  while( ss.good() ){
+    std::string substr;
+    std::getline( ss, substr, ',' );
+    if(substr.find("-") != std::string::npos){
+      std::vector<int> t;
+      std::string substr2;
+      std::stringstream ss2(substr);
+      
+      while(std::getline(ss2, substr2, '-')){
+        t.push_back(atoi(substr2.c_str()));
+      }
+    
+      if(t.size()!=2){
+        fprintf(stderr, "\nBAD_PARSING!! EXITING\n");
+        for(size_t j=0; j<t.size(); j++)
+          fprintf(stderr, "%d\n", t[j]);
+        exit(0);
+      }
+      for(int j=t[0]; j<=t[1]; j++)
+        result.push_back( j );
+      
+    } else {
+      result.push_back( atoi(substr.c_str()) );
+    }
+  }
   return result;
 }
 
@@ -546,12 +563,12 @@ int main(int argc, char *argv[]){
         COOL_PA = true;
     } else if(strcmp(argv[argPos], "-select") == 0){
       std::string str = string(argv[argPos+1]);
-      sample_keep = parse_string(str, ',');
+      sample_keep = parse_select_string(str);
       if(sample_keep.size()<2){
-        fprintf(stderr, "-select must contain at least two indices (Comma separated, 1-based) - EXITING\n");
+        fprintf(stderr, "-select must contain at least two indices - EXITING\n");
         exit(0);
       }
-      // make the zero-based
+      // make index zero-based
       for(size_t i=0; i<sample_keep.size();i++)
         sample_keep[i] -= 1;
     } else if(strcmp(argv[argPos], "-seed") == 0){
@@ -562,8 +579,6 @@ int main(int argc, char *argv[]){
       return 0;
     }
 
-
-    
     argPos+=2;
   }
 

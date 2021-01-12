@@ -2,6 +2,15 @@
 #include <fstream>
 #include <cmath>
 
+// //checktime
+// #include <sys/time.h>
+
+float timedifference_msec(struct timeval t0, struct timeval t1)
+{
+    return (t1.tv_sec - t0.tv_sec) * 1000.0f + (t1.tv_usec - t0.tv_usec) / 1000.0f;
+}
+
+
 int is_missing(double *ary){
   if(fabs(ary[0] - ary[1])<1e-6 && fabs(ary[0] - ary[2])<1e-6 && fabs(ary[1] - ary[2])<1e-6)
     return 1;
@@ -110,6 +119,11 @@ void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIte
     fprintf(stderr,"\ntotSites=%d\n",totSites);
   }
 
+  // //checktime
+  // struct timeval t0;
+  // struct timeval t1;
+  // float elapsed;
+  // gettimeofday(&t0, 0);
 
 
  
@@ -225,7 +239,7 @@ for(int a22=0;a22<npop;a22++){
     tempPart[0*totSites + count] += Pa0*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];
     if(g11[i]==g21[i] &&k1keep)
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
-    //tempPart[2*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm21[a12*nSites+i]*Pm22[a22*nSites+i];//k1=1 k2=0
+
     if(g12[i]==g22[i] && k2keep){
       tempPart[1*totSites + count] += Pa1*Pm11[a11*nSites+i]*Pm12[a21*nSites+i]*Pm21[a12*nSites+i];//k1=0 k2=1
       if(g11[i]==g21[i] &&k1keep)
@@ -305,23 +319,29 @@ for(int a22=0;a22<npop;a22++){
    if(geno2[i] == 1)
      mult *=2;
   
-     if(keepSites[i]==0)    
-       continue;
+   if(keepSites[i]==0)    
+     continue;
 
-     tempPart[0*totSites+count] *=mult;
-     tempPart[1*totSites+count] *=mult;
-     tempPart[2*totSites+count] *=mult;
-  
-     if(geno1[i] == 1 && geno2[i] == 1){
-       tempPart[1*totSites+count] /=2;
-       tempPart[2*totSites+count] /=2; 
-     }
-     count++;
+   tempPart[0*totSites+count] *=mult;
+   tempPart[1*totSites+count] *=mult;
+   tempPart[2*totSites+count] *=mult;
+   
+   if(geno1[i] == 1 && geno2[i] == 1){
+     tempPart[1*totSites+count] /=2;
+     tempPart[2*totSites+count] /=2; 
+   }
+   count++;
 
  }
  //return(ans);
 //// the em part
 
+// //checktime
+//  gettimeofday(&t1, 0);
+//  elapsed = timedifference_msec(t0, t1);
+//  fprintf(stdout, "temp: %f\n", elapsed);
+
+ 
 
  int stepMax = 1;
  int mstep = 4;
@@ -468,6 +488,12 @@ for(int a22=0;a22<npop;a22++){
  }
 
 
+ // //checktime
+ // gettimeofday(&t1, 0);
+ // elapsed = timedifference_msec(t0, t1);
+ // fprintf(stdout, "optim: %f\n", elapsed);
+ // gettimeofday(&t0, 0);
+ 
 for(int j=0;j<3;j++)
   start[j] = x[j];
 
@@ -571,10 +597,18 @@ void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& num
     fprintf(stderr,"\ntotSites=%d\n",totSites);
   }
 
+  // //checktime
+  // struct timeval t0;
+  // struct timeval t1;
+  // float elapsed;
+  // gettimeofday(&t0, 0);
+
+  
   double* tempPart=new double[totSites*3];
   for(int i=0;i<totSites*3;i++) // k0, k1, k2
     tempPart[i] =0;
 
+  
 for(int a11=0;a11<npop;a11++){
   if(!cool && a1[a11] <  tol) // || a1[a11] > 1-tol)
     continue;
@@ -666,8 +700,15 @@ for(int g22=0; g22<2; g22++){
  }}   // z1 and z2
  }}}} // npops
 
-//// the em part
+// //checktime
+//  gettimeofday(&t1, 0);
+//  elapsed = timedifference_msec(t0, t1);
+//  fprintf(stdout, "temp: %f\n", elapsed);
+//  gettimeofday(&t0, 0);
+ 
+ //// the em part
 
+ 
  int stepMax = 1;
  int mstep = 4;
  int stepMin = 1;
@@ -809,6 +850,10 @@ for(int g22=0; g22<2; g22++){
 
  }
 
+ // //checktime
+ // gettimeofday(&t1, 0);
+ // elapsed = timedifference_msec(t0, t1);
+ // fprintf(stdout, "optim: %f\n", elapsed);
 
 for(int j=0;j<3;j++)
   start[j] = x[j];
