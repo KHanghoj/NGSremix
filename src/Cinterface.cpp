@@ -307,6 +307,7 @@ void info(){
   fprintf(stderr,"\t-P Number of threads\n");
   fprintf(stderr,"\t-seed [uint]\n");
   fprintf(stderr,"\t-select [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]\n");
+  fprintf(stderr,"\t-notcool 1\t Disables paired ancestry. Default[-notcool 0] \n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
