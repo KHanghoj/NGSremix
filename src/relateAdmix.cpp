@@ -2,8 +2,11 @@
 #include <fstream>
 #include <cmath>
 
-// //checktime
-// #include <sys/time.h>
+
+#ifdef checktime
+#include <sys/time.h>
+#endif
+
 //https://stackoverflow.com/a/27448980
 float timedifference_msec(struct timeval t0, struct timeval t1)
 {
@@ -119,12 +122,12 @@ void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIte
     fprintf(stderr,"\ntotSites=%d\n",totSites);
   }
 
-  // //checktime
-  // struct timeval t0;
-  // struct timeval t1;
-  // float elapsed;
-  // gettimeofday(&t0, 0);
-
+#ifdef checktime
+  struct timeval t0;
+  struct timeval t1;
+  float elapsed;
+  gettimeofday(&t0, 0);
+#endif
 
  
 int* g11=new int[nSites];
@@ -336,11 +339,11 @@ for(int a22=0;a22<npop;a22++){
  //return(ans);
 //// the em part
 
-// //checktime
-//  gettimeofday(&t1, 0);
-//  elapsed = timedifference_msec(t0, t1);
-//  fprintf(stdout, "temp: %f\n", elapsed);
-
+#ifdef checktime 
+ gettimeofday(&t1, 0);
+ elapsed = timedifference_msec(t0, t1);
+ fprintf(stdout, "temp: %f\n", elapsed);
+#endif
  
 
  int stepMax = 1;
@@ -488,11 +491,12 @@ for(int a22=0;a22<npop;a22++){
  }
 
 
- // //checktime
- // gettimeofday(&t1, 0);
- // elapsed = timedifference_msec(t0, t1);
- // fprintf(stdout, "optim: %f\n", elapsed);
- // gettimeofday(&t0, 0);
+#ifdef checktime
+ gettimeofday(&t1, 0);
+ elapsed = timedifference_msec(t0, t1);
+ fprintf(stdout, "optim: %f\n", elapsed);
+ gettimeofday(&t0, 0);
+#endif
  
 for(int j=0;j<3;j++)
   start[j] = x[j];
@@ -597,18 +601,18 @@ void ngsrelateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& num
     fprintf(stderr,"\ntotSites=%d\n",totSites);
   }
 
-  // //checktime
-  // struct timeval t0;
-  // struct timeval t1;
-  // float elapsed;
-  // gettimeofday(&t0, 0);
-
+#ifdef checktime  
+  struct timeval t0;
+  struct timeval t1;
+  float elapsed;
+  gettimeofday(&t0, 0);
+#endif
   
   double* tempPart=new double[totSites*3];
   for(int i=0;i<totSites*3;i++) // k0, k1, k2
     tempPart[i] =0;
 
-  
+  int n_updates = 0;
 for(int a11=0;a11<npop;a11++){
   if(!cool && a1[a11] <  tol) // || a1[a11] > 1-tol)
     continue;
@@ -634,22 +638,6 @@ for(int z2=0; z2<2; z2++){
   if(z2==1 && a12!=a22) // if two diff ancestral pops. k2 (ordered) is 0
     continue;
 
-  
-  // fprintf(stderr, "%d %d %d %d %d %d %f %f %f %f\n", a11, a12, a21, a22, z1, z2, a1_paired[a11][a12], a2_paired[a21][a22],  a1_paired[a11][a12] * a2_paired[a21][a22], denom);
-
-for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
-for(int g12=0; g12<2; g12++){
-for(int g21=0; g21<2; g21++){
-  if(z1==1 && g11!=g21)
-    continue;
-for(int g22=0; g22<2; g22++){
-  if(z2==1 && g12!=g22)
-    continue;
-
-
-  // double denom = get_denom_paired_anc(npop, a1_paired, a2_paired, z1, z2);
-  // double Pa = a1_paired[a11][a12] * a2_paired[a21][a22] / denom;
-
   // if cool method
   double Pa = 0;
   if(cool){
@@ -669,13 +657,24 @@ for(int g22=0; g22<2; g22++){
     if(z2==1)
       Pa /= sum2;    
   }
+
+for(int g11=0; g11<2; g11++){  // integrate the unobs ordered genotypes
+for(int g12=0; g12<2; g12++){
+for(int g21=0; g21<2; g21++){
+  if(z1==1 && g11!=g21)
+    continue;
+for(int g22=0; g22<2; g22++){
+  if(z2==1 && g12!=g22)
+    continue;
   
+  n_updates++;
   int count=0;
   for(int i=0;i<nSites;i++){
    // probablity of data
     
     if(keepSites[i]==0)    
       continue;
+
     // kh:
     double pgl1 = gl1[i*3 + g11+g12];
     double pgl2 = gl2[i*3 + g21+g22];
@@ -700,12 +699,13 @@ for(int g22=0; g22<2; g22++){
  }}   // z1 and z2
  }}}} // npops
 
-// //checktime
-//  gettimeofday(&t1, 0);
-//  elapsed = timedifference_msec(t0, t1);
-//  fprintf(stdout, "temp: %f\n", elapsed);
-//  gettimeofday(&t0, 0);
- 
+#ifdef checktime 
+ gettimeofday(&t1, 0);
+ elapsed = timedifference_msec(t0, t1);
+ fprintf(stdout, "temp: %f\n", elapsed);
+ fprintf(stdout, "%d\n", n_updates);
+ gettimeofday(&t0, 0);
+#endif
  //// the em part
 
  
@@ -850,11 +850,13 @@ for(int g22=0; g22<2; g22++){
 
  }
 
- // //checktime
- // gettimeofday(&t1, 0);
- // elapsed = timedifference_msec(t0, t1);
- // fprintf(stdout, "optim: %f\n", elapsed);
-
+ 
+#ifdef checktime 
+ gettimeofday(&t1, 0);
+ elapsed = timedifference_msec(t0, t1);
+ fprintf(stdout, "optim: %f\n", elapsed);
+#endif
+ 
 for(int j=0;j<3;j++)
   start[j] = x[j];
 

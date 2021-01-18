@@ -496,8 +496,8 @@ int main(int argc, char *argv[]){
   
   int numIter=4000;
   // testing
-  double tol=0.00001;
-  // double tol=0.01;
+  // double tol=0.00001;
+  double tol=0.01; // this is the lower boundary for admixture proportions and paired ancestry proportions
   const char *outname = "ngsremix.res";
   int autosomeMax = 23;
   // string geno= "";
@@ -699,8 +699,10 @@ int main(int argc, char *argv[]){
   if(COOL_PA){
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
     fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
-
+    time_t t_paired=time(NULL);
     for (int i=0; i<nInd;i++){
+      if(i%10==0)
+        fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
       if(keepSamples[i]==0)
         continue;
       int paired_iter;
@@ -714,6 +716,7 @@ int main(int argc, char *argv[]){
       fprintf(fp_paired, " %d\n", paired_iter);
     }
     fclose(fp_paired);
+    fprintf(stdout, "\t-> Paired ancestry estimations took %ld sec.\n", time(NULL)-t_paired);
   }
   pars->Q_paired = paired_anc;
 

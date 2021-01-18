@@ -24,7 +24,7 @@ alloc.o : alloc.h alloc.cpp types.h
 	$(CC) -c -fPIC   alloc.cpp ${FLAGS}
 
 relateAdmix.o : relateAdmix.h relateAdmix.cpp
-	$(CC) -c relateAdmix.cpp ${FLAGS}
+	$(CC) -c relateAdmix.cpp ${FLAGS} # -Dchecktime
 
 ibAdmix.o : ibAdmix.h ibAdmix.cpp
 	$(CC) -c ibAdmix.cpp ${FLAGS}
