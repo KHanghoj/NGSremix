@@ -716,7 +716,7 @@ int main(int argc, char *argv[]){
       fprintf(fp_paired, " %d\n", paired_iter);
     }
     fclose(fp_paired);
-    fprintf(stdout, "\t-> Paired ancestry estimations took %ld sec.\n", time(NULL)-t_paired);
+    fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
   }
   pars->Q_paired = paired_anc;
 
