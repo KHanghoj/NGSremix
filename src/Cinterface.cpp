@@ -306,8 +306,9 @@ void info(){
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P Number of threads\n");
   fprintf(stderr,"\t-seed [uint]\n");
+  fprintf(stderr,"\t-tol [float]\t Lower tolerance for excluding admixture/paired ancestry estimates [Default: 0.001]\n");  
   fprintf(stderr,"\t-select [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]\n");
-  fprintf(stderr,"\t-notcool 1\t Disables paired ancestry. Default[-notcool 0] \n");
+  fprintf(stderr,"\t-notcool 1\t Disables paired ancestry. [Default -notcool 0] \n");
   fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
@@ -497,7 +498,7 @@ int main(int argc, char *argv[]){
   int numIter=4000;
   // testing
   // double tol=0.00001;
-  double tol=0.01; // this is the lower boundary for admixture proportions and paired ancestry proportions
+  double tol=0.001; // this is the lower boundary for admixture proportions and paired ancestry proportions
   const char *outname = "ngsremix.res";
   int autosomeMax = 23;
   // string geno= "";
@@ -574,6 +575,8 @@ int main(int argc, char *argv[]){
         sample_keep[i] -= 1;
     } else if(strcmp(argv[argPos], "-seed") == 0){
       MYSEED = atoi(argv[argPos+1]);    
+    } else if(strcmp(argv[argPos], "-tol") == 0){
+      tol = atof(argv[argPos+1]);    
     }else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
