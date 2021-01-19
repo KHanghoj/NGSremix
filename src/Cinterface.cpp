@@ -718,6 +718,7 @@ int main(int argc, char *argv[]){
         fprintf(fp_paired, " %f", paired_anc[i][ii]);
       fprintf(fp_paired, " %d\n", paired_iter);
     }
+    fprintf(stderr,"\n");
     fclose(fp_paired);
     fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
   }
