@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/aalbrechtsen/relateAdmix.svg?branch=master)](https://travis-ci.org/aalbrechtsen/relateAdmix)
 
 # NGSremix
 Estimating relatedness coefficients from admixed populations. It can take called genotypes in PLINK format and genotype likelihoods in a beagle format
@@ -6,70 +5,60 @@ Estimating relatedness coefficients from admixed populations. It can take called
 The method is implemented in an R package and as a commandline based C++ program embeded in the R package. 
 
 # Install
-### R package using devtools
 
-If you have the devtools packages (https://github.com/hadley/devtools) installed in R then you can install the package i R directly from github
-
-```
-library(devtools)
-install_github("KHanghoj/NGSremix")
-```
-
-### To compile the C++ version
-download the code
-
-```
+First clone the code
+```bash
 git clone https://github.com/KHanghoj/NGSremix.git
 ```
 
-go to the scr folder that contains the C++ files 
-type 
+go to the scr folder that contains the C++ files and type 
 
 ```
 cd NGSremix/scr
 make -f CPP_Makefile
 ```
 
-### R package without devtools
 
-If you do not have the devtools package (and dont want to install it) then you will have to build the R package 
+#  Arguments
 
-first download the code (you need to have a clean version without the compiled c++ code)
+To get the arguments available for `NGSremix` type the following:
 
-```
-git clone https://github.com/KHanghoj/NGSremix.git
-```
-
-```
-R CMD build NGSremix
+```bash
+./NGSremix
 ```
 
-# getting started
+# Examples
 
- * The manual can be found on the wiki [http://www.popgen.dk/software/index.php/RelateAdmix]
+## Genotype likelihoods
+The example for genotype likelihoods of 6 individuals and 10000 sites. The ancestry proportions and allele frequencies are already estimated with `ngsadmix` using 3 source populations. The example is a subset of individuals shown in figure 3 of the `NGSremix` paper. 
 
-### in R
+```bash
+
+cd dataNGS
+
+./run.sh
+
 ```
-library(NGSremix)
-example(relate)
-```
 
-### C++ from commandline - examples
-After installing the program you can try running it on the example data set in the data folder, which consists of 50 individuals that are admixed from 2 source populations.
 
-If you are in the src folder where you installed relateAdmix and you have the software ADMIXTURE installed this can be done as follows: 
+## Called genotypes
+The example for called genotypes consists of 50 individuals that are admixed from 2 source populations. 
+
+The example requires that ADMIXTURE software and NGSremix are installed 
 ```
-cd ../data
+cd data
 
 # First run Admixture using a plink ".bed" as input to produce population specific allele 
 # frequencies (smallPlink.2.P)  and individual ancestry proportions (smallPlink.2.Q).
 # (note other programs can be used instead of Admixture, e.g. Structure and FRAPPE)
 admixture smallPlink.bed 2 
 
-# Then run relateAdmix with plink bed, bim and fam files plus the Admixture output files as input
-../src/relateAdmix -plink smallPlink -f smallPlink.2.P -q smallPlink.2.Q -P 20
+# Then run NGSremix with plink bed, bim and fam files plus the Admixture output files as input
+../src/NGSremix -plink smallPlink -f smallPlink.2.P -q smallPlink.2.Q -P 20
 
 ```
  
+
+
 
 **ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA ANGSD - NGSADMIX - NGSremix**

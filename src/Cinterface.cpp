@@ -297,19 +297,21 @@ double **allocDouble(size_t x,size_t y){
 
 void info(){
   fprintf(stderr,"Arguments:\n");
-  fprintf(stderr,"\t-plink name of the binary plink file (excluding the .bed)\n");
-  fprintf(stderr,"\t-beagle name of the gzipped beagle file\n");  
-  fprintf(stderr,"\t-fname Ancestral population frequencies\n"); 
-  fprintf(stderr,"\t-qname Admixture proportions\n"); 
-  fprintf(stderr,"\t-o name of the output file\n"); 
+  fprintf(stderr,"\t-plink     [str] name of the binary plink file (excluding the .bed)\n");
+  fprintf(stderr,"\t-beagle    [str] name of the gzipped beagle file\n");  
+  fprintf(stderr,"\t-fname     [str] Ancestral population frequencies\n"); 
+  fprintf(stderr,"\t-qname     [str] Admixture proportions\n"); 
+  fprintf(stderr,"\t-o         [str] name of the output file\n"); 
 
   fprintf(stderr,"Setup:\n"); 
-  fprintf(stderr,"\t-P Number of threads\n");
-  fprintf(stderr,"\t-seed [uint]\n");
-  fprintf(stderr,"\t-tol [float]\t Lower tolerance for excluding admixture/paired ancestry estimates [Default: 0.001]\n");  
-  fprintf(stderr,"\t-select [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]\n");
-  fprintf(stderr,"\t-notcool 1\t Disables paired ancestry. [Default -notcool 0] \n");
-  fprintf(stderr,"\t-F 1\t if you want to estimate inbreeding\n"); 
+  fprintf(stderr,"\t-P         [int] Number of threads\n");
+  fprintf(stderr,"\t-seed      [uint]\n");
+  fprintf(stderr,"\t-tol       [float] Lower tolerance for excluding admixture/paired ancestry estimates [Default: 0.001]\n");  
+  fprintf(stderr,"\t-select    [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]\n");
+  fprintf(stderr,"\t-notcool 1 [int] Disables paired ancestry. [Default -notcool 0] \n");
+
+  fprintf(stderr,"Legacy:\n"); 
+  fprintf(stderr,"\t-F 1       if you want to estimate inbreeding\n"); 
   fprintf(stderr,"\t-autosomeMax 22\t autosome ends with this chromsome\n"); 
 
   exit(0);
