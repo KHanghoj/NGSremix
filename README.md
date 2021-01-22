@@ -2,7 +2,7 @@
 # NGSremix
 Estimating relatedness coefficients from admixed populations. It can take called genotypes in PLINK format and genotype likelihoods in a beagle format
 
-The method is implemented in an R package and as a commandline based C++ program embeded in the R package. 
+The method is implemented as a C/C++ commandline program.
 
 # Install
 
