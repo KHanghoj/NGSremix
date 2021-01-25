@@ -57,8 +57,3 @@ admixture smallPlink.bed 2
 ../src/NGSremix -plink smallPlink -f smallPlink.2.P -q smallPlink.2.Q -P 20
 
 ```
- 
-
-
-
-**ADD EXAMPLE FOR GENOTYPE LIKELIHOOD DATA ANGSD - NGSADMIX - NGSremix**
