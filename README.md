@@ -14,7 +14,7 @@ git clone https://github.com/KHanghoj/NGSremix.git
 go to the scr folder that contains the C++ files and type 
 
 ```
-cd NGSremix/scr
+cd scr
 make -f CPP_Makefile
 ```
 
