@@ -658,7 +658,6 @@ int main(int argc, char *argv[]){
       fprintf(stdout," - done \n");
       fflush(stdout);
     }
-    printf("\t->Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
 
     if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
       printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
