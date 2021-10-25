@@ -56,6 +56,40 @@ typedef struct  {
   }
 }iMatrix ;
 
+typedef struct  {
+  int x;
+  int y;
+  unsigned short int** matrix;
+  void info(const std::string name){
+    printf("iMatrix:%s dims= (%d,%d) \n",name.c_str(),x,y);
+  }
+
+  void print(const char *st,const char *file){
+    if(file==NULL){
+      if(st!=NULL)
+	printf("\niMatrix dims: %s = (%d,%d)\n",st,x,y);
+      for (int i=0;i<x;i++){
+	for (int j=0;j<y;j++)
+	  printf("%d ",matrix[i][j] );
+	printf("\n");
+      }
+    } else{
+      FILE *pFile;
+      pFile = fopen(file,"w");
+      if(st!=NULL)
+
+	fprintf(pFile,"\niMatrix dims of: %s = (%d,%d)\n",st,x,y);
+      for (int i=0;i<x;i++){
+	for (int j=0;j<y;j++)
+	  fprintf(pFile,"%d ",matrix[i][j]);
+	fprintf(pFile,"\n");
+      }
+      fclose(pFile);
+    }
+  }
+}usiMatrix ;
+
+
 //alloc by allocDoubleMatrix
 //deall by killMatrix
 typedef struct{

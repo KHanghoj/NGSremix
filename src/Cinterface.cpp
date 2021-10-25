@@ -633,10 +633,10 @@ int main(int argc, char *argv[]){
     fprintf(stdout,"\t-> Plink file contains %d samples\n",numInds);
     plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);
     fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
-    fprintf(stdout,"\t-> reading genotypes ");
+    fprintf(stdout,"\t-> reading genotypes\n");
     fflush(stdout);
     iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
-    fprintf(stdout," - done \n");
+    fprintf(stdout,"\t-> done allocating and reading plink \n");
     fflush(stdout);
     if(tmp->y==plinkKeep->numTrue){ 
       pars->data = tmp;
@@ -657,7 +657,7 @@ int main(int argc, char *argv[]){
       fprintf(stdout," - done \n");
       fflush(stdout);
     }
-    printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
+    printf("\t->Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
 
     if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
       printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");

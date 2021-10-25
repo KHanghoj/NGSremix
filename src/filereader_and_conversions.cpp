@@ -509,14 +509,17 @@ iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) {
   
   
   iMatrix *returnMat = allocIntMatrix(nrow,ncol);
-  int ncell = nrow*ncol;
-  unsigned char *result = new unsigned char[nrow*ncol]; 
-  memset(result, 0x00, ncell);
+  unsigned char *result = new unsigned char[1];
+  memset(result, 0x00, 1);
+  // int ncell = nrow*ncol;
+  // unsigned char *result = new unsigned char[nrow*ncol]; 
+  // memset(result, 0x00, ncell);
 
   /* Read in data */
 
   int snp_major = start[2];
-  int part=0, ij=0, i=0, j=0;
+  int part=0, i=0, j=0;
+  size_t ij=0;
   while (1) {
     unsigned char byte;
     if (!part) {
@@ -529,8 +532,10 @@ iMatrix *bed_to_iMatrix(const char* file, int nrow,int ncol) {
     unsigned char code = byte & mask;
     byte = byte >> 2;
     part--;
-    result[ij] = recode[code];
-    returnMat->matrix[i][j] = result[ij];
+    // result[ij] = recode[code];
+    // returnMat->matrix[i][j] = result[ij];
+    result[0] = recode[code];
+    returnMat->matrix[i][j] = result[0];
     if(returnMat->matrix[i][j]==3)
       returnMat->matrix[i][j]=1;
     else if(returnMat->matrix[i][j]==1)
