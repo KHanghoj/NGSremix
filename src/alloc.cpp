@@ -64,12 +64,12 @@ iMatrix *allocIntMatrix(int x, int y){
 usiMatrix *allocUSIntMatrix(int x, int y){
   try{
     usiMatrix *tmp = new usiMatrix();
-    int **ppi = new int*[x];
+    unsigned short int **ppi = new unsigned short int*[x];
     
 
     // int *curPtr = new int [x * y];
     for( int i = 0; i < x; ++i) {
-      *(ppi + i) = new int[y];
+      *(ppi + i) = new unsigned short int[y];
       // curPtr += y;
     }
 #if _fillup_
@@ -120,6 +120,11 @@ void killIntMatrix(int **var){
   delete [] var;
 }
 
+void killUSIntMatrix(unsigned short int **var){
+  delete [] *var;
+  delete [] var;
+}
+
 void killMatrix(dMatrix *var){
   killDoubleMatrix(var->matrix);
   delete var;
@@ -132,7 +137,7 @@ void killMatrix(iMatrix *var){
 }
 
 void killMatrix(usiMatrix *var){
-  killIntMatrix(var->matrix);
+  killUSIntMatrix(var->matrix);
   delete var;
 }
 

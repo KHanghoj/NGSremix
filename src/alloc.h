@@ -24,7 +24,7 @@
 
 
 iMatrix *allocIntMatrix(int x, int y);
-usiMatrix *allocIntMatrix(int x, int y);
+usiMatrix *allocUSIntMatrix(int x, int y);
 void killArray(dArray *var);
 void killArray(iArray *var);
 void killArray(bArray *var);
