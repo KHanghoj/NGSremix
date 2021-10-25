@@ -635,7 +635,8 @@ int main(int argc, char *argv[]){
     fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
     fprintf(stdout,"\t-> reading genotypes\n");
     fflush(stdout);
-    iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
+    // iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
+    usiMatrix *tmp = bed_to_usiMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
     fprintf(stdout,"\t-> done allocating and reading plink \n");
     fflush(stdout);
     if(tmp->y==plinkKeep->numTrue){ 
@@ -643,8 +644,8 @@ int main(int argc, char *argv[]){
     }else{
       fprintf(stdout,"\t-> extractOK (%d %d) ",tmp->x,plinkKeep->numTrue);
       fflush(stdout);
-      
-      pars->data = extractOK(plinkKeep,tmp);
+
+      pars->data = extractOK(plinkKeep, tmp);
       killMatrix(tmp);
       fprintf(stdout," - done \n");
       fflush(stdout);
@@ -744,7 +745,7 @@ int main(int argc, char *argv[]){
 	fprintf(stderr,"\r\trunning i1:%d",i);
 	start[0] <- 0.02;
 	double llh=0;
-      
+        
 	ibAdmix(tolStop,nSites,K,maxIter,useSq,numIter,pars->data,pars->Q,start,pars->F,tol,i,llh);
 	fprintf(fp,"%d\t%f\t%f\t%d\n",i,start[0],llh,numIter);
       }

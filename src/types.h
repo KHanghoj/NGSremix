@@ -56,6 +56,7 @@ typedef struct  {
   }
 }iMatrix ;
 
+
 typedef struct  {
   int x;
   int y;
@@ -70,7 +71,7 @@ typedef struct  {
 	printf("\niMatrix dims: %s = (%d,%d)\n",st,x,y);
       for (int i=0;i<x;i++){
 	for (int j=0;j<y;j++)
-	  printf("%d ",matrix[i][j] );
+	  printf("%hu ",matrix[i][j] );
 	printf("\n");
       }
     } else{
@@ -81,7 +82,7 @@ typedef struct  {
 	fprintf(pFile,"\niMatrix dims of: %s = (%d,%d)\n",st,x,y);
       for (int i=0;i<x;i++){
 	for (int j=0;j<y;j++)
-	  fprintf(pFile,"%d ",matrix[i][j]);
+	  fprintf(pFile,"%hu ",matrix[i][j]);
 	fprintf(pFile,"\n");
       }
       fclose(pFile);
@@ -410,31 +411,12 @@ typedef struct{ //used by HMMtest
 }functionPars2; //used by HMMtest
 
 
-
-// typedef struct  { //pars used by relateHMM
-//   //?? min;
-//   //pointer
-//   iMatrix *data; //1
-//   iArray *chr; //1
-//   dArray *position;//1
-
-//   double **F;
-//   double **Q;
-//   double tol;
-//   double tolStop;
-//   int maxIter;
-//   int useSq;
-//   int K;
-//   int nSites;
-//   double likes;
-
-// }myPars ;//pars used by relateHMM
-
 typedef struct  { //pars used by ngsrelateadmix
   //?? min;
   //pointer
   // for plink
-  iMatrix *data; //1
+  usiMatrix *data; //1
+  // iMatrix *data; //1
   iArray *chr; //1
   dArray *position;//1
 
@@ -460,7 +442,7 @@ typedef struct  { //pars used by ngsrelateadmix
   // new common
   int nInd;
   
-}myPars ;//pars used by relateHMM
+}myPars ;
 
 
 

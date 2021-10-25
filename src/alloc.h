@@ -30,6 +30,7 @@ void killArray(iArray *var);
 void killArray(bArray *var);
 void killDoubleMatrix(double **var);
 void killIntMatrix(int **var);
+void killUSIntMatrix(int **var);
 void killMatrix(dMatrix *var);
 void killMatrix(iMatrix *var);
 void killMatrix(usiMatrix *var);

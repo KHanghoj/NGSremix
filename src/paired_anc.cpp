@@ -32,7 +32,7 @@ double prob_gl_anc_af(double *gl1, double & f1, double & f2){
   return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
 }
 
-double prob_gt_anc_af(int &gt1, double & f1, double & f2){
+double prob_gt_anc_af(unsigned short int &gt1, double & f1, double & f2){
 
   double p_af;
 
@@ -249,7 +249,7 @@ int est_paired_anc_gl(int nSites, int K, int nKs, double *gl1, double **f, doubl
 }
 
 
-int est_paired_anc_gt(int nSites, int K, int nKs, int *gt1, double **f, double *res2){
+int est_paired_anc_gt(int nSites, int K, int nKs, unsigned short int *gt1, double **f, double *res2){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];

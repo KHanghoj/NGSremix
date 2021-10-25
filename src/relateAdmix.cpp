@@ -51,7 +51,7 @@ void dealloc_anc_paired(int K, double **a){
 }
 
 
-void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter,int *geno1,int *geno2, double *a1,double *a2,double *start,double **f,double tol, bool cool){
+void relateAdmix(double tolStop,int nSites,int K,int nIter,int useSq,int& numIter,unsigned short int *geno1, unsigned short int *geno2, double *a1,double *a2,double *start,double **f,double tol, bool cool){
 
 
   int print=0;

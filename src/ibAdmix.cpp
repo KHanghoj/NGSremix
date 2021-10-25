@@ -122,7 +122,7 @@ double optim3(int nSites,int *g,double **prod,double *in,int maxIter,double tole
   return llhOld;
 }
 
-double newF(int nSites,int *g,double **prod,double F,int nInformativeSites,double &llh){
+double newF(int nSites,unsigned short int *g,double **prod,double F,int nInformativeSites,double &llh){
 
   double newF=0;
   llh=0;
@@ -153,7 +153,7 @@ double newF(int nSites,int *g,double **prod,double F,int nInformativeSites,doubl
 
 
 
-double newFaccell(int nSites,int *g,double **prod,double F,int nInformativeSites,double &llh, EMoptions *emO){
+double newFaccell(int nSites, unsigned short int *g,double **prod,double F,int nInformativeSites,double &llh, EMoptions *emO){
 
 
   double alpha=emO->alpha;
@@ -215,7 +215,7 @@ double newFaccell(int nSites,int *g,double **prod,double F,int nInformativeSites
   return F5;
 }
 
-double ibAdmixEM(int nSites,int *g,double **prod,double *in,int& nIter,double tolStop,int nInformativeSites,double *diff,int maxIter,int useSq){
+double ibAdmixEM(int nSites,unsigned short int *g,double **prod,double *in,int& nIter,double tolStop,int nInformativeSites,double *diff,int maxIter,int useSq){
   //  fprintf(stderr,"[%s] nsites:%d F:%f maxIter:%d tole:%f nInformativeSites:%d\n",__FUNCTION__,nSites,*in,maxIter,tole,nInformativeSites);
 
 
@@ -257,7 +257,7 @@ double ibAdmixEM(int nSites,int *g,double **prod,double *in,int& nIter,double to
   return llhOld;
 }
 
-void ibAdmix( double tolStop,int nSites,int K,int maxIter,int useSq,int& numIter,iMatrix *genos, double **Q,double *start,double **f,double tol,int theInd,double &llh){
+void ibAdmix( double tolStop,int nSites,int K,int maxIter,int useSq,int& numIter,usiMatrix *genos, double **Q,double *start,double **f,double tol,int theInd,double &llh){
   //  fprintf(stderr,"\n[%s] nSites:%d K:%d dim.genos(%d,%d)\n",__FUNCTION__,nSites,K,genos->x,genos->y);
 
 

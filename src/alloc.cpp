@@ -49,7 +49,6 @@ iMatrix *allocIntMatrix(int x, int y){
 	ppi[i][n]=0;
 #endif
     printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(int)*x*y/1000000000);
-    printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(unsigned short int)*x*y/1000000000);
     tmp->matrix=ppi;
     tmp->x=x;
     tmp->y=y;
@@ -65,8 +64,6 @@ usiMatrix *allocUSIntMatrix(int x, int y){
   try{
     usiMatrix *tmp = new usiMatrix();
     unsigned short int **ppi = new unsigned short int*[x];
-    
-
     // int *curPtr = new int [x * y];
     for( int i = 0; i < x; ++i) {
       *(ppi + i) = new unsigned short int[y];
@@ -77,7 +74,6 @@ usiMatrix *allocUSIntMatrix(int x, int y){
       for(int n=0;n<y;n++)
 	ppi[i][n]=0;
 #endif
-    printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(int)*x*y/1000000000);
     printf("\t-> Allocated: %.3f gig memory\n",(float)sizeof(unsigned short int)*x*y/1000000000);
     tmp->matrix=ppi;
     tmp->x=x;
@@ -140,9 +136,6 @@ void killMatrix(usiMatrix *var){
   killUSIntMatrix(var->matrix);
   delete var;
 }
-
-
-
 
 void killSnpMatrix(snpMatrix *mat){
   killMatrix(mat->pba);
