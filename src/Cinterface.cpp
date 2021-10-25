@@ -630,7 +630,8 @@ int main(int argc, char *argv[]){
     //read plink data or beagle
     printf("\t-> Will assume these are the plink files:\n\t\tbed: %s\n\t\tbim: %s\n\t\tfam: %s\n",plink_bed.c_str(),plink_bim.c_str(),plink_fam.c_str());
     numInds = numberOfLines(plink_fam.c_str())-1;//the number of individuals is just the number of lines
-    plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);  
+    fprintf(stdout,"\t-> Plink file contains %d samples\n",numInds);
+    plinkKeep = doBimFile(pars,plink_bim.c_str()," \t",autosomeMax);
     fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
     fprintf(stdout,"\t-> reading genotypes ");
     fflush(stdout);
@@ -649,12 +650,15 @@ int main(int argc, char *argv[]){
       fflush(stdout);
     }
     killArray(plinkKeep);
-    fprintf(stdout,"\t-> sorting ");
-    fflush(stdout);
-    mysort(pars,0);  // why sorting?
-    fprintf(stdout," - done \n");
-    fflush(stdout);
-    // printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
+    if(0){
+      fprintf(stdout,"\t-> sorting ");
+      fflush(stdout);
+      mysort(pars,0);  // why sorting?
+      fprintf(stdout," - done \n");
+      fflush(stdout);
+    }
+    printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
+
     if(pars->data->y != pars->chr->x || pars->position->x != pars->data->y){
       printf("Dimension of data input doesn't have compatible dimensions, program will exit\n");
       printf("Dimension of genodata:=(%d,%d), positions:=%d, chromosomes:=%d\n",pars->data->x,pars->data->y,pars->position->x,pars->chr->x);
