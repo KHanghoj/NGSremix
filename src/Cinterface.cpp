@@ -45,6 +45,7 @@ int *printArray;
 FILE *fp;
 int cunt;
 int doInbreeding =0;
+int doParental = 0;
 int MYSEED = 999999;
 
 eachPars *allPars = NULL;
@@ -578,8 +579,10 @@ int main(int argc, char *argv[]){
     } else if(strcmp(argv[argPos], "-seed") == 0){
       MYSEED = atoi(argv[argPos+1]);    
     } else if(strcmp(argv[argPos], "-tol") == 0){
-      tol = atof(argv[argPos+1]);    
-    }else{
+      tol = atof(argv[argPos+1]);
+    } else if(strcmp(argv[argPos], "-parental")==0){
+      doParental = atoi(argv[argPos+1]);;
+    } else{
       printf("\nArgument unknown will exit: %s \n",argv[argPos]);
       info();
       return 0;
@@ -700,7 +703,8 @@ int main(int argc, char *argv[]){
   readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
-  int nKs = ((K-1)*K/2+K);
+  // int nKs = ((K-1)*K/2+K);
+  int nKs = doParental>0?K*2:((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
   outname2 += ".pairedanc";
@@ -716,9 +720,9 @@ int main(int argc, char *argv[]){
         continue;
       int paired_iter;
       if(useBeagle)
-        paired_iter = est_paired_anc_gl(pars->nSites, K, nKs, pars->dataGL->matrix[i], pars->F, paired_anc[i]);
+        paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental);
       else if(usePlink)
-        paired_iter = est_paired_anc_gt(pars->nSites, K, nKs, pars->data->matrix[i], pars->F, paired_anc[i]);
+        paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental);
       fprintf(fp_paired, "%d", i+1);
       for (int ii=0;ii<nKs;ii++)
         fprintf(fp_paired, " %f", paired_anc[i][ii]);
@@ -727,6 +731,10 @@ int main(int argc, char *argv[]){
     fprintf(stderr,"\n");
     fclose(fp_paired);
     fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
+    if(doParental>0){
+      fprintf(stdout, "EXITING DEVEPLOMENTAL STAGE");
+      exit(0);
+    }
   }
   pars->Q_paired = paired_anc;
 
