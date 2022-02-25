@@ -598,7 +598,8 @@ int main(int argc, char *argv[]){
   }
   
   //check if files exits
-  fex(qname);
+  if (!COOL_PA)
+    fex(qname);
   fex(fname);
 
   int numInds;
@@ -686,7 +687,7 @@ int main(int argc, char *argv[]){
       keepSamples[i] = 1;
   }
   
-  int K=getK(qname);
+  int K=getK(fname);
   fprintf(stdout,"\t-> K=%d\tnSites=%d\tnInd=%d\n",K,nSites,nInd);
   pars->maxIter=maxIter;
   pars->tol=tol;
@@ -697,17 +698,20 @@ int main(int argc, char *argv[]){
 
   fp=fopen(outname,"w");
   double **F =allocDouble(nSites,K);
-  double **Q =allocDouble(nInd,K);
+  double **Q;
+  if (!COOL_PA)
+      Q=allocDouble(nInd,K);
   pars->F=F;
   pars->Q=Q;
-  readDouble(Q,nInd,K,qname,0);
+  if (!COOL_PA)
+    readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
   // int nKs = ((K-1)*K/2+K);
   int nKs = doParental>0?K*2:((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
-  outname2 += doParental>0:".parentalanc"?".pairedanc";
+  outname2 += doParental>0?".parentalanc":".pairedanc";
 
   if(COOL_PA){
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
@@ -899,11 +903,11 @@ int main(int argc, char *argv[]){
   for(int j = 0; j < nSites; j++) 
     delete[] F[j];
   delete[] F;
-  
-  for(int i = 0; i < nInd; i++)
-    delete [] Q[i];
-  delete[] Q;
- 
+  if (!COOL_PA){ 
+    for(int i = 0; i < nInd; i++)
+        delete [] Q[i];
+    delete[] Q;
+  }
   fclose(fp);
   if(usePlink)
     killMatrix(pars->data);
