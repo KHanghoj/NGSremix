@@ -707,7 +707,7 @@ int main(int argc, char *argv[]){
   int nKs = doParental>0?K*2:((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
-  outname2 += ".pairedanc";
+  outname2 += doParental>0:".parentalanc"?".pairedanc";
 
   if(COOL_PA){
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
@@ -732,7 +732,7 @@ int main(int argc, char *argv[]){
     fclose(fp_paired);
     fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
     if(doParental>0){
-      fprintf(stdout, "EXITING DEVEPLOMENTAL STAGE");
+      fprintf(stdout, "\nParental is in deveplomental stage; Exiting\n");
       exit(0);
     }
   }
