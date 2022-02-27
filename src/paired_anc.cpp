@@ -431,7 +431,7 @@ int is_missing2(double *ary){
 }
 
 
-int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, int & ordered){
+int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, int & ordered, double & loglike){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
@@ -447,7 +447,7 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
   int npop = K;
   int precalcN = ordered>0?K*K:((K-1)*K/2+K);
   int nKs = ordered>0?K*2:((K-1)*K/2+K);
-
+  int ksquare = K*K;
   double** pre_calc = new double*[totsites];
   int totsites_idx = 0;
   for(int i=0;i<nSites;i++){
@@ -467,11 +467,13 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
   int maxIter = 5000;
   int currIter = 0;
   double tolStop=0.000001;
-  if (ordered>0)
+  if (ordered>0){
     em_anc_paired_parental(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
-  else
+    loglike = loglike_parental(pre_calc, res2, ksquare, K, totsites);
+}else{
     em_anc_paired(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
-  // double ll = loglike_paired(pre_calc, res2, nSites, nKs);
+  loglike = loglike_paired(pre_calc, res2, nSites, nKs);
+  }
   // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
   // print_pars(res2, nKs);
   // fprintf(stderr, "\n");
@@ -485,7 +487,7 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
 }
 
 
-int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, double *res2, int &ordered){
+int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, double *res2, int &ordered, double & loglike){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
@@ -500,7 +502,7 @@ int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, do
 
   int precalcN = ordered>0?K*K:((K-1)*K/2+K);
   int nKs = ordered>0?K*2:((K-1)*K/2+K);
-
+  int ksquare = K*K;
   int npop = K;
   double** pre_calc = new double*[totsites];
   int totsites_idx = 0;
@@ -523,10 +525,13 @@ int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, do
   int maxIter = 5000;
   int currIter = 0;
   double tolStop=0.000001;
-  if (ordered>0)
+  if (ordered>0){
     em_anc_paired_parental(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
-  else
+    loglike = loglike_parental(pre_calc, res2, ksquare, K, totsites);
+  }else{
     em_anc_paired(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
+  loglike = loglike_paired(pre_calc, res2, nSites, nKs);
+  }
   // double ll = loglike_paired(pre_calc, res2, nSites, nKs);
   // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
   // print_pars(res2, nKs);

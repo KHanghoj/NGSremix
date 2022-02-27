@@ -712,7 +712,7 @@ int main(int argc, char *argv[]){
   double **paired_anc = allocDouble(nInd,nKs);  
   std::string outname2 = strdup(outname);
   outname2 += doParental>0?".parentalanc":".pairedanc";
-
+  double paired_loglikelihood = 0; 
   if(COOL_PA){
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
     fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
@@ -724,13 +724,14 @@ int main(int argc, char *argv[]){
         continue;
       int paired_iter;
       if(useBeagle)
-        paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental);
+        paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
       else if(usePlink)
-        paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental);
+        paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
       fprintf(fp_paired, "%d", i+1);
       for (int ii=0;ii<nKs;ii++)
         fprintf(fp_paired, " %f", paired_anc[i][ii]);
-      fprintf(fp_paired, " %d\n", paired_iter);
+      fprintf(fp_paired, " %d", paired_iter);
+      fprintf(fp_paired, " %f\n", paired_loglikelihood);
     }
     fprintf(stderr,"\n");
     fclose(fp_paired);
