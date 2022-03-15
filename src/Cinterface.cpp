@@ -267,14 +267,14 @@ void readBeagle(const char *fname, myPars *pars){
 
 int getK(const char*fname){
   const char*delims=" \n";
-  FILE *fp = NULL;
-  if((fp=fopen(fname,"r"))==NULL){
+  gzFile fp = NULL;
+  if((fp=gzopen(fname,"r"))==NULL){
     fprintf(stderr,"can't open:%s\n",fname);
     exit(0);
   }
-  int lens=100000 ;
+  int lens=1000000 ;
   char buf[lens];
-  if(NULL==fgets(buf,lens,fp)){
+  if(NULL==gzgets(fp, buf,lens)){
     fprintf(stderr,"Increase buffer\n");
     exit(0);
   }
@@ -282,7 +282,7 @@ int getK(const char*fname){
   int K=1;
   while(strtok(NULL,delims))
     K++;
-  fclose(fp);
+  gzclose(fp);
 
   return(K);
 }

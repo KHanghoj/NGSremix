@@ -17,6 +17,7 @@ double loglike_paired(double **l, double *pars, int & nSites, int & nKs){
     double temp = 0;
     for(int nk=0;nk<nKs;nk++)
       temp += (l[i][nk] * pars[nk]);
+
     res += log(temp);
   }
   return(res);
@@ -472,7 +473,7 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
     loglike = loglike_parental(pre_calc, res2, ksquare, K, totsites);
 }else{
     em_anc_paired(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
-  loglike = loglike_paired(pre_calc, res2, nSites, nKs);
+    loglike = loglike_paired(pre_calc, res2, totsites, nKs);
   }
   // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
   // print_pars(res2, nKs);
