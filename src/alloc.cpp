@@ -178,7 +178,7 @@ dMatrix *allocDoubleMatrix(int x, int y){
     // double *curPtr = new double [x * y];
     
     for( int i = 0; i < x; ++i) {
-      *(ppi + i) = new double[y]
+      *(ppi + i) = new double[y];
       //*(ppi + i) = curPtr;
       // curPtr += y;
     }
