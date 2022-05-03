@@ -175,11 +175,12 @@ dMatrix *allocDoubleMatrix(int x, int y){
   try{
     dMatrix *tmp = new dMatrix();
     double **ppi = new double*[x];
-    double *curPtr = new double [x * y];
+    // double *curPtr = new double [x * y];
     
     for( int i = 0; i < x; ++i) {
-      *(ppi + i) = curPtr;
-      curPtr += y;
+      *(ppi + i) = new double[y]
+      //*(ppi + i) = curPtr;
+      // curPtr += y;
     }
 #if _fillup_
     for (int i=0;i<x;i++)
