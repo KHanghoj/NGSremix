@@ -336,15 +336,6 @@ void em_anc_paired(double tolStop, int nSites, int nKs, double** pre_calc, doubl
       x[nk] = pars[nk] / total;
 
 
-    // new estimate is now done.
-
-    // if(iter%10==0){
-    //   double ll = loglike_paired(pre_calc, x, nSites, nKs);
-    //   fprintf(stderr, "%d log: %f ", iter, ll);
-    //   print_pars(x, nKs);
-    //   fprintf(stderr, "\n");
-    // }
-
 
     if(useSq && iter%3==2){
 
@@ -500,7 +491,6 @@ int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, do
       totsites++;
     }
   }
-
   int precalcN = ordered>0?K*K:((K-1)*K/2+K);
   int nKs = ordered>0?K*2:((K-1)*K/2+K);
   int ksquare = K*K;
@@ -531,15 +521,8 @@ int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, do
     loglike = loglike_parental(pre_calc, res2, ksquare, K, totsites);
   }else{
     em_anc_paired(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
-  loglike = loglike_paired(pre_calc, res2, nSites, nKs);
+  loglike = loglike_paired(pre_calc, res2, totsites, nKs);
   }
-  // double ll = loglike_paired(pre_calc, res2, nSites, nKs);
-  // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
-  // print_pars(res2, nKs);
-  // fprintf(stderr, "\n");
-
-
-
 
   // clean up
   for(int i=0;i<totsites;i++)
