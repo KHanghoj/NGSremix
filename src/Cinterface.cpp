@@ -99,7 +99,7 @@ void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
   char buf[lens];
   for(int i=0;i<x;i++){
     if(NULL==gzgets(fp,buf,lens)){
- 	fprintf(stderr,"Error: Only %d sites in frequency file (maybe increase buffer)\n",i);
+ 	fprintf(stderr,"Error: Only %d sites in frequency file (Check for MAF filter in ngsremix/admixture\n",i);
 	exit(0);
     }
     if(neg)
