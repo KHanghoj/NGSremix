@@ -43,9 +43,9 @@ int NumJobs;
 int jobs;
 int *printArray;
 FILE *fp;
+FILE *fp_paired;
 int cunt;
 int doInbreeding =0;
-int doParental = 0;
 int do_both_anc = 0;
 int MYSEED = 999999;
 
@@ -303,7 +303,11 @@ void info(){
   fprintf(stderr,"\t-beagle    [str] name of the gzipped beagle file\n");  
   fprintf(stderr,"\t-fname     [str] Ancestral population frequencies\n"); 
   fprintf(stderr,"\t-qname     [str] Admixture proportions\n"); 
-  fprintf(stderr,"\t-o         [str] name of the output file\n"); 
+  fprintf(stderr,"\t-o         [str] name of the output file\n\n"); 
+  
+  fprintf(stderr,"Paired and Parental Ancestry Estimation\n");
+  fprintf(stderr,"\t-bothanc 1 [int] Estimates paired and parental ancestries for each individual. Note Relatedness will NOT be estimated. [Default -bothanc 0]\n\n");
+  
 
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P         [int] Number of threads\n");
@@ -581,8 +585,6 @@ int main(int argc, char *argv[]){
       MYSEED = atoi(argv[argPos+1]);    
     } else if(strcmp(argv[argPos], "-tol") == 0){
       tol = atof(argv[argPos+1]);
-    } else if(strcmp(argv[argPos], "-parental")==0){
-      doParental = atoi(argv[argPos+1]);;
     } else if(strcmp(argv[argPos], "-bothanc")==0){
       do_both_anc = atoi(argv[argPos+1]);;
     } else{
@@ -698,8 +700,8 @@ int main(int argc, char *argv[]){
   pars->K=K;
   pars->nSites=nSites;
   pars->useSq=useSq;
-
-  fp=fopen(outname,"w");
+  if(!do_both_anc)
+    fp=fopen(outname,"w");
   double **F =allocDouble(nSites,K);
   double **Q;
   if (!COOL_PA)
@@ -712,47 +714,105 @@ int main(int argc, char *argv[]){
 
   // est both ancestry exit
 
+    // if(do_both_anc){
+    //     for(int doParental=0; doParental<2; doParental++){
+    //       int nKs = doParental>0?K*2:((K-1)*K/2+K);
+    //       double **paired_anc = allocDouble(nInd,nKs);  
+    //       std::string outname2 = strdup(outname);
+    //       outname2 += doParental>0?".parentalanc":".pairedanc";
+    //       double paired_loglikelihood = 0; 
+    //         FILE *fp_paired = fopen(outname2.c_str(), "w");  
+    //         fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
+    //         time_t t_paired=time(NULL);
+    //         for (int i=0; i<nInd;i++){
+    //           if(i%10==0)
+    //             fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
+    //           if(keepSamples[i]==0)
+    //             continue;
+    //           int paired_iter;
+    //           if(useBeagle)
+    //             paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
+    //           else if(usePlink)
+    //             paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
+    //           fprintf(fp_paired, "%d", i+1);
+    //           for (int ii=0;ii<nKs;ii++)
+    //             fprintf(fp_paired, " %f", paired_anc[i][ii]);
+    //           fprintf(fp_paired, " %d", paired_iter);
+    //           fprintf(fp_paired, " %f\n", paired_loglikelihood);
+    //         }
+    //         fprintf(stderr,"\n");
+    //         fclose(fp_paired);
+    //         fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
+    //     }
+    //   fprintf(stdout, "\nDone estimating parental and paired ancestries. Exiting\n");
+    //   exit(0);
+    // }
     if(do_both_anc){
-        for(int doParental=0; doParental<2; doParental++){
-          int nKs = doParental>0?K*2:((K-1)*K/2+K);
-          double **paired_anc = allocDouble(nInd,nKs);  
-          std::string outname2 = strdup(outname);
-          outname2 += doParental>0?".parentalanc":".pairedanc";
-          double paired_loglikelihood = 0; 
-            FILE *fp_paired = fopen(outname2.c_str(), "w");  
-            fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
-            time_t t_paired=time(NULL);
-            for (int i=0; i<nInd;i++){
-              if(i%10==0)
-                fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
-              if(keepSamples[i]==0)
-                continue;
-              int paired_iter;
-              if(useBeagle)
-                paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
-              else if(usePlink)
-                paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
-              fprintf(fp_paired, "%d", i+1);
-              for (int ii=0;ii<nKs;ii++)
-                fprintf(fp_paired, " %f", paired_anc[i][ii]);
-              fprintf(fp_paired, " %d", paired_iter);
-              fprintf(fp_paired, " %f\n", paired_loglikelihood);
-            }
-            fprintf(stderr,"\n");
-            fclose(fp_paired);
-            fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
-        }
-      fprintf(stdout, "\nDone estimating parental and paired ancestries. Exiting\n");
-      exit(0);
+        time_t t_paired=time(NULL);
+        std::string outname2 = strdup(outname);
+        outname2 += ".anccoef";
+        fp_paired = fopen(outname2.c_str(), "w");  
+        fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
+        for (int i=0; i<nInd;i++){
+          fprintf(fp_paired, "%d", i+1);
+          if(i%10==0)
+            fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
+          if(keepSamples[i]==0)
+            continue;
+          for(int doParental=0; doParental<2; doParental++){
+            int nKs = doParental>0?K*2:((K-1)*K/2+K);
+            double *paired_anc= new double[nKs];
+            int paired_iter;
+            double paired_loglikelihood = 0; 
+            if(useBeagle)
+              paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc, doParental, paired_loglikelihood);
+            else if(usePlink)
+              paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc, doParental, paired_loglikelihood);
+            
+            fprintf(fp_paired, " %f", paired_anc[0]);
+          
+            for (int ii=1;ii<nKs;ii++)
+              fprintf(fp_paired, ",%f", paired_anc[ii]);
+            fprintf(fp_paired, " %d", paired_iter);
+            fprintf(fp_paired, " %f", paired_loglikelihood);
+            free(paired_anc);
+              }
+            fprintf(fp_paired, "\n");
+      }
+      fclose(fp_paired);
+      fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
+
+      // free stuff
+      fprintf(stderr,"\n");
+      for(int j = 0; j < nSites; j++) 
+        delete[] F[j];
+      delete[] F;
+      if (!COOL_PA){ 
+        for(int i = 0; i < nInd; i++)
+            delete [] Q[i];
+        delete[] Q;
+      }
+      if(usePlink)
+        killMatrix(pars->data);
+      else if (useBeagle)
+        killMatrix(pars->dataGL);
+      delete[] allPars;
+      delete[] keepSamples;
+  
+      fprintf(stdout, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
+      fprintf(stdout, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
+      fprintf(stdout, "\t[ALL done] results have been outputted to %s\n",outname2.c_str());
+      return(0);
     }
 
   // int nKs = ((K-1)*K/2+K);
-  int nKs = doParental>0?K*2:((K-1)*K/2+K);
+  int nKs = ((K-1)*K/2+K);
   double **paired_anc = allocDouble(nInd,nKs);  
-  std::string outname2 = strdup(outname);
-  outname2 += doParental>0?".parentalanc":".pairedanc";
   double paired_loglikelihood = 0; 
   if(COOL_PA){
+    int doParental = 0;
+    std::string outname2 = strdup(outname);
+    outname2 += ".pairedanc";
     FILE *fp_paired = fopen(outname2.c_str(), "w");  
     fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
     time_t t_paired=time(NULL);
@@ -775,10 +835,6 @@ int main(int argc, char *argv[]){
     fprintf(stderr,"\n");
     fclose(fp_paired);
     fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
-    if(doParental>0){
-      fprintf(stdout, "\nParental is in deveplomental stage; Exiting\n");
-      exit(0);
-    }
   }
   pars->Q_paired = paired_anc;
 
