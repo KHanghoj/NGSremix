@@ -881,7 +881,14 @@ int main(int argc, char *argv[]){
         killMatrix(pars->dataGL);
       delete[] allPars;
       delete[] keepSamples;
-  
+      if (nThreads!=1){
+        for (int i=0; i<nInd;i++){
+          delete [] pars->Q_paired[i];
+          delete [] pars->Q_parental[i];
+        }
+        delete[] pars->Q_paired;
+        delete[] pars->Q_parental;
+      }
       fprintf(stdout, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
       fprintf(stdout, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
       fprintf(stdout, "\t[ALL done] results have been outputted to %s\n",outname2.c_str());
