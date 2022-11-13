@@ -427,7 +427,8 @@ typedef struct  { //pars used by ngsrelateadmix
   char **ids;
 
   double **Q_paired;
-  
+  double **Q_parental;
+
   // common  
   double **F;
   double **Q;
@@ -454,7 +455,9 @@ typedef struct  { //pars used by relateHMM
   int ind2;
   double *start;
   int numIter;
+  int numIterPar;
   int *numI;
   double llh;
+  double llhPar;
 }eachPars ;//pars used by relateHMM
 
