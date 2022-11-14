@@ -789,84 +789,93 @@ int main(int argc, char *argv[]){
     readDouble(Q,nInd,K,qname,0);
   readDoubleGZ(F,nSites,K,fname,1);
 
+  int nKs_parental = K*2;
+  int nKs_paired = ((K-1)*K/2+K);
+  double **Q_parental = allocDouble(nInd, nKs_parental);
+  double **Q_paired = allocDouble(nInd, nKs_paired);
+  pars->Q_parental = Q_parental;
+  pars->Q_paired = Q_paired;
   // est both ancestry exit
 
-    if(do_both_anc){
-      time_t t_paired=time(NULL);
-      std::string outname2 = strdup(outname);
-      outname2 += ".anccoef";
-      fp_paired = fopen(outname2.c_str(), "w");  
-      fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
-      if (nThreads==1){
-        for (int i=0; i<nInd;i++){
-          fprintf(fp_paired, "%d", i+1);
-          if(i%10==0)
-            fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
-          if(keepSamples[i]==0)
-            continue;
-          for(int doParental=0; doParental<2; doParental++){
-            int nKs = doParental>0?K*2:((K-1)*K/2+K);
-            double *paired_anc= new double[nKs];
-            int paired_iter;
-            double paired_loglikelihood = 0; 
-            if(useBeagle)
-              paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc, doParental, paired_loglikelihood);
-            else if(usePlink)
-              paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc, doParental, paired_loglikelihood);
-          
-            fprintf(fp_paired, " %f", paired_anc[0]);
-        
-            for (int ii=1;ii<nKs;ii++)
-              fprintf(fp_paired, ",%f", paired_anc[ii]);
-            fprintf(fp_paired, " %d", paired_iter);
-            fprintf(fp_paired, " %f", paired_loglikelihood);
-            delete[] paired_anc;
-          }
-        fprintf(fp_paired, "\n");
+  if(do_both_anc | COOL_PA){
+    time_t t_paired=time(NULL);
+    std::string outname2 = strdup(outname);
+    outname2 += ".anccoef";
+    fp_paired = fopen(outname2.c_str(), "w");  
+    fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
+    if (nThreads==1){
+      for (int i=0; i<nInd;i++){
+        if(i%10==0)
+          fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
+        if(keepSamples[i]==0)
+          continue;
+        int numIter=0, numIterPar = 0;
+        double llh=0, llhPar=0;
+        int do_par = 1;
+        int do_not_par= 0;
+        if(useBeagle){
+          numIter = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
+          numIterPar = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+        } else if(usePlink){
+          numIter = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
+          numIterPar = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+        } else {
+          // should not happen
         }
-      } else {
-      // threading
-      int nKs_parental = K*2;
-      int nKs_paired = ((K-1)*K/2+K);
-      double **Q_parental = allocDouble(nInd, nKs_parental);
-      double **Q_paired = allocDouble(nInd, nKs_paired);
-      pars->Q_parental = Q_parental;
-      pars->Q_paired = Q_paired;
-      NumJobs = nInd;
-      jobs =  nInd;
+        fprintf(fp_paired, "%d", i+1);
+        fprintf(fp_paired, " %f", pars->Q_paired[i][0]);
+        for (int ii=1;ii<nKs_paired;ii++){
+          fprintf(fp_paired, ",%f", pars->Q_paired[i][ii]);
+         }         
+        fprintf(fp_paired, " %d", numIter);
+        fprintf(fp_paired, " %f", llh);
 
-      allPars = new eachPars[NumJobs];
-      for(int i=0;i<nInd;i++){
-          allPars[i].ind1=i;
-          allPars[i].ind2=0;
-          allPars[i].numIter=0;
-          allPars[i].numIterPar=0;
-          allPars[i].pars=pars;
-          allPars[i].llh=0;
-          allPars[i].llhPar=0;
-      }
+        fprintf(fp_paired, " %f", pars->Q_parental[i][0]);
+        for (int ii=1;ii<nKs_parental;ii++){
+          fprintf(fp_paired, ",%f", pars->Q_parental[i][ii]);
+         }         
+        fprintf(fp_paired, " %d", numIterPar);
+        fprintf(fp_paired, " %f", llhPar);
+        fprintf(fp_paired, "\n");
+      } // per ind
+    } else {
+    // threading
+    NumJobs = nInd;
+    jobs =  nInd;
 
-      printArray=new int[NumJobs];
-      for(int c=0;c<NumJobs;c++){
-        printArray[c]=0;
-      }    
+    allPars = new eachPars[NumJobs];
+    for(int i=0;i<nInd;i++){
+        allPars[i].ind1=i;
+        allPars[i].ind2=0;
+        allPars[i].numIter=0;
+        allPars[i].numIterPar=0;
+        allPars[i].pars=pars;
+        allPars[i].llh=0;
+        allPars[i].llhPar=0;
+    }
 
-      pthread_t thread1[nThreads];
-    
-      for (int i = 0; i < nThreads; i++)
-        pthread_create(&thread1[i], NULL, &functionPaired, NULL);
-    
-      // Wait all threads to finish
-      for (int i = 0; i < nThreads; i++)
-        pthread_join(thread1[i], NULL);
-    
-        
+    printArray=new int[NumJobs];
+    for(int c=0;c<NumJobs;c++){
+      printArray[c]=0;
+    }    
+
+    pthread_t thread1[nThreads];
+  
+    for (int i = 0; i < nThreads; i++)
+      pthread_create(&thread1[i], NULL, &functionPaired, NULL);
+  
+    // Wait all threads to finish
+    for (int i = 0; i < nThreads; i++)
+      pthread_join(thread1[i], NULL);
+      
     }     
-      fclose(fp_paired);
-      fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
-
-      // free stuff
-      fprintf(stderr,"\n");
+    fclose(fp_paired);
+    fprintf(stderr,"\n");
+    fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
+    // free stuff
+    // consider keep software running if we want to estimate
+    // relatedness
+    if (do_both_anc){
       for(int j = 0; j < nSites; j++) 
         delete[] F[j];
       delete[] F;
@@ -888,45 +897,14 @@ int main(int argc, char *argv[]){
         }
         delete[] pars->Q_paired;
         delete[] pars->Q_parental;
+        delete[] printArray;
       }
       fprintf(stdout, "\t[ALL done] cpu-time used =  %.2f sec\n", (float)(clock() - t) / CLOCKS_PER_SEC);
       fprintf(stdout, "\t[ALL done] walltime used =  %.2f sec\n", (float)(time(NULL) - t2));  
       fprintf(stdout, "\t[ALL done] results have been outputted to %s\n",outname2.c_str());
       return(0);
     }
-
-  // int nKs = ((K-1)*K/2+K);
-  int nKs = ((K-1)*K/2+K);
-  double **paired_anc = allocDouble(nInd,nKs);  
-  double paired_loglikelihood = 0; 
-  if(COOL_PA){
-    int doParental = 0;
-    std::string outname2 = strdup(outname);
-    outname2 += ".pairedanc";
-    FILE *fp_paired = fopen(outname2.c_str(), "w");  
-    fprintf(stdout,"\t-> Calculating paired ancestry coefficients. Dumping to %s\n", outname2.c_str());
-    time_t t_paired=time(NULL);
-    for (int i=0; i<nInd;i++){
-      if(i%10==0)
-        fprintf(stderr, "\r\t-> %d/%d paired ancestries estimated", i, nInd);
-      if(keepSamples[i]==0)
-        continue;
-      int paired_iter;
-      if(useBeagle)
-        paired_iter = est_paired_anc_gl(pars->nSites, K, pars->dataGL->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
-      else if(usePlink)
-        paired_iter = est_paired_anc_gt(pars->nSites, K, pars->data->matrix[i], pars->F, paired_anc[i], doParental, paired_loglikelihood);
-      fprintf(fp_paired, "%d", i+1);
-      for (int ii=0;ii<nKs;ii++)
-        fprintf(fp_paired, " %f", paired_anc[i][ii]);
-      fprintf(fp_paired, " %d", paired_iter);
-      fprintf(fp_paired, " %f\n", paired_loglikelihood);
-    }
-    fprintf(stderr,"\n");
-    fclose(fp_paired);
-    fprintf(stdout, "\t-> %d paired ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
   }
-  pars->Q_paired = paired_anc;
 
   ///////// print header
   if(!doInbreeding)
