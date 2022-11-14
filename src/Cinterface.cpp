@@ -802,6 +802,8 @@ int main(int argc, char *argv[]){
     std::string outname2 = strdup(outname);
     outname2 += ".anccoef";
     fp_paired = fopen(outname2.c_str(), "w");  
+    // add header
+    fprintf(fp_paired, "ind paired_est paired_iter paired_ll parental_est parental_iter parental_ll\n");
     fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
     if (nThreads==1){
       for (int i=0; i<nInd;i++){

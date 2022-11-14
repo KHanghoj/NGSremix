@@ -97,21 +97,6 @@ void em_anc_paired_parental(double tolStop, int nSites, int nKs, double** pre_ca
   double alpha;
   
 
-  // for (int p=0; p<nKs; p++){
-  //   x[p] = ttol/(k-1); 
-  // } 
-
-  // for (int p=0; p<k;p++){
-  //     for (int m=0; m<k;m++){
-  //       x[p] = 1-ttol;
-  //       x[m+k] = 1-ttol;
-  //       fprintf(stderr, "%d, %d, %f\n", p, m, loglike_parental(pre_calc, x, ksquare, k, nSites));
-  //       x[p] = ttol/(k-1);
-  //       x[m+k] = ttol/(k-1);
-        
-  //     }
-  // }
-
 
   srand48(time(NULL));
   double randp=0, randm=0;
@@ -165,36 +150,12 @@ void em_anc_paired_parental(double tolStop, int nSites, int nKs, double** pre_ca
    for(int a=0;a<k;a++){
      totalp += pars[a];
      totalm += pars[a+k];
-       // fprintf(stderr, "%d %f %d %f\n", a, pars[a], a+k, pars[a+k]);
    }
-    // exit(1);    
     // normalize
     for(int a=0;a<k;a++){
       x[a] = pars[a] / totalp;
       x[a+k] = pars[a+k] / totalm;
     }  
-    // double loglike = loglike_parental(pre_calc, x, ksquare, k, nSites); 
-//     double loglike = 0;
-//     for (int i=0; i<nSites; i++){
-//         double temp_loglike = 0;
-//         for(int a=0; a<ksquare;a++){
-// 
-//           int pidx = a / k;
-//           int midx = (a % k) + k;
-//                  
-//           temp_loglike += pre_calc[i][a] * x[pidx] * x[midx];
-//         }
-//         loglike += log(temp_loglike);
-//   }
-  // if(1 & iter%20==0){
-  //   fprintf(stderr, "%d %f\n", iter, loglike);
-  //   for(int a=0; a<nKs; a++){
-  //       fprintf(stderr, " %f", x[a]);
-  // }
-  //   fprintf(stderr, "\n");
-  // }
-  // continue;
-    // new estimate is now done.
 
 
     if(useSq && iter%3==2){
