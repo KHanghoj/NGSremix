@@ -27,9 +27,6 @@ double prob_gl_anc_af(double *gl1, double & f1, double & f2, int & ordered){
   double p_g0fa = f1 *f2;
   double p_g1fa = f1 * (1-f2) + f2 * (1-f1);
   double p_g2fa = (1-f1) * (1-f2);
-  // double p_g0fa = (1-f1) * (1-f2);
-  // double p_g1fa = f1 * (1-f2) + f2 * (1-f1);
-  // double p_g2fa = f1 * f2;
   if (ordered > 0)
     return(gl1[0]*p_g0fa + gl1[1]*p_g1fa / 2.0 + gl1[2]*p_g2fa);
   else
@@ -427,9 +424,6 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
     em_anc_paired(tolStop, totsites, nKs, pre_calc, res2, currIter, maxIter);
     loglike = loglike_paired(pre_calc, res2, totsites, nKs);
   }
-  // fprintf(stderr, "final log (iter: %d): %f ", currIter, ll);
-  // print_pars(res2, nKs);
-  // fprintf(stderr, "\n");
 
   // clean up
   for(int i=0;i<totsites;i++)

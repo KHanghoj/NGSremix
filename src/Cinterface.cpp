@@ -60,34 +60,6 @@ bool COOL_PA = true;
 
 int VERBOSE = 1;
 
-void *relateWrap(void *a){
-  eachPars *p = (eachPars *)a;
-  myPars *pars=p->pars;
-  int i=p->ind1;
-  int j=p->ind2;
-  int numIt=0;
-  /*
-  fprintf(stderr,"%f\n",pars->tolStop);
-  fprintf(stderr,"%f\n",pars->tol);
-  fprintf(stderr,"%d\n",pars->nSites);
-  fprintf(stderr,"%d\n",i);
-  fprintf(stderr,"%d\n",j);
-  fprintf(stderr,"%d\n",pars->K);
-  fprintf(stderr,"%d\n",pars->maxIter);
-  fprintf(stderr,"%d\n",pars->useSq);
-  fprintf(stderr,"%d\n",pars->data->matrix[i][0]);
- fprintf(stderr,"%d\n",pars->data->matrix[j][0]);
- fprintf(stderr,"%f\n",pars->Q[j][0]);
-fprintf(stderr,"%f\n",p->start[0]);
-  */
-  //if(doInbreeding==0)
-  relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p->start,pars->F,pars->tol, COOL_PA);
-  //  else
-  //    ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p->start,pars->F,pars->tol,i,pars->likes);
-  p->numIter=numIt;
-  return NULL;
-}
-
 void readDoubleGZ(double **d,int x,int y,const char*fname,int neg){
   fprintf(stdout,"\t-> Opening : %s with x=%d y=%d\n",fname,x,y);
   const char*delims=" \n";
@@ -308,7 +280,6 @@ void info(){
   fprintf(stderr,"Paired and Parental Ancestry Estimation\n");
   fprintf(stderr,"\t-bothanc 1 [int] Estimates paired and parental ancestries for each individual. Note Relatedness will NOT be estimated. [Default -bothanc 0]\n\n");
   
-
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P         [int] Number of threads\n");
   fprintf(stderr,"\t-seed      [uint]\n");
@@ -371,7 +342,6 @@ void *functionC(void *a) //the a means nothing
 	break;
 
       fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
-      //fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0],cunt);
         cunt++;
     }
 
@@ -481,7 +451,6 @@ void *functionIBadmix(void *a) //the a means nothing
     double llh=0;
       
     ibAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data,pars->Q,p.start,pars->F,pars->tol,i,llh);
-    //relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q[i],pars->Q[j],p.start,pars->F,pars->tol);
 
 	
     
@@ -489,7 +458,6 @@ void *functionIBadmix(void *a) //the a means nothing
     p.numI[0]=numIt;
     p.llh=llh;
     p.start[1]=llh;
-    //fprintf(stdout,"## %d\t%f\t%f\t %d\t %d\n",i,p.start[0],p.llh,p.numI[0],p.numIter);
     //////////////////////////////////////////////
 
     pthread_mutex_lock(&mutex1);
@@ -505,7 +473,6 @@ void *functionIBadmix(void *a) //the a means nothing
 	break;
 
       fprintf(fp,"%d\t%f\t%f\t%d\n",allPars[cunt].ind1, allPars[cunt].start[0], allPars[cunt].start[1], allPars[cunt].numI[0]);
-      //fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\t%d\n",allPars[cunt].ind1,allPars[cunt].ind2,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0],cunt);
         cunt++;
     }
 
@@ -586,9 +553,6 @@ int main(int argc, char *argv[]){
   double tol=0.001; // this is the lower boundary for admixture proportions and paired ancestry proportions
   const char *outname = "ngsremix.res";
   int autosomeMax = 23;
-  // string geno= "";
-  // string pos = "";
-  // string chr = "";
   string plink_fam;
   string plink_bim;
   string plink_bed;
@@ -689,8 +653,6 @@ int main(int argc, char *argv[]){
   }
   fprintf(stdout,"\t-> Seed is: %d\n",MYSEED);
   srand48(MYSEED);
-  //  srand(MYSEED);
-
   // now set variables with   fprintf(stderr, "%f", drand48());
   // using drand48();
   
@@ -701,9 +663,7 @@ int main(int argc, char *argv[]){
     
     nSites = pars->nSites;
     nInd = pars->nInd;
-
-    // pars->dataGL->print("beagle","test.txt");
-    
+  
   }else if (usePlink){
     //////////////////////////////////////////////////
     //read plink data or beagle
@@ -714,7 +674,6 @@ int main(int argc, char *argv[]){
     fprintf(stdout,"\t-> Plink file contains %d autosomale SNPs\n",plinkKeep->numTrue);
     fprintf(stdout,"\t-> reading genotypes\n");
     fflush(stdout);
-    // iMatrix *tmp = bed_to_iMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
     usiMatrix *tmp = bed_to_usiMatrix(plink_bed.c_str(),numInds,plinkKeep->x);
     fprintf(stdout,"\t-> done allocating and reading plink \n");
     fflush(stdout);
@@ -896,8 +855,6 @@ int main(int argc, char *argv[]){
     fprintf(stderr,"\n");
     fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
     // free stuff
-    // consider keep software running if we want to estimate
-    // relatedness
     if (do_both_anc){
       for(int j = 0; j < nSites; j++) 
         delete[] F[j];
@@ -999,9 +956,6 @@ int main(int argc, char *argv[]){
 
         // GO HERE
         init_param(start, 3);
-	// start[0]=0.7;
-	// start[1]=0.2;
-        // start[2]=0.1;
         fprintf(stderr,"\r\t-> running i1:%d i2:%d",i,j);
         if(usePlink){
           if(COOL_PA)
@@ -1057,9 +1011,6 @@ int main(int argc, char *argv[]){
 
       // GO HERE
       init_param(start, 3);
-      // start[0]=0.7;
-      // start[1]=0.2;
-      // start[2]=0.1;
       int i=indMatrix[c*2];
       int j=indMatrix[c*2+1];
       
