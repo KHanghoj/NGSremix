@@ -651,13 +651,6 @@ int main(int argc, char *argv[]){
     } else if(strcmp(argv[argPos], "-select") == 0){
       std::string str = string(argv[argPos+1]);
       sample_keep = parse_select_string(str);
-      if(sample_keep.size()<2){
-        fprintf(stderr, "-select must contain at least two indices - EXITING\n");
-        exit(0);
-      }
-      // make index zero-based
-      for(size_t i=0; i<sample_keep.size();i++)
-        sample_keep[i] -= 1;
     } else if(strcmp(argv[argPos], "-seed") == 0){
       MYSEED = atoi(argv[argPos+1]);    
     } else if(strcmp(argv[argPos], "-tol") == 0){
@@ -684,6 +677,15 @@ int main(int argc, char *argv[]){
     fex(qname);
   fex(fname);
 
+  if (!sample_keep.empty()){
+    if(sample_keep.size()<2 && !do_both_anc){
+      fprintf(stderr, "-select must contain at least two indices - EXITING\n");
+      exit(0);
+    }
+    // make index zero-based
+    for(size_t i=0; i<sample_keep.size();i++)
+      sample_keep[i] -= 1;
+  } 
   int numInds;
   int nInd;
   int nSites;
@@ -842,18 +844,29 @@ int main(int argc, char *argv[]){
       } // per ind
     } else {
     // threading
-    NumJobs = nInd;
-    jobs =  nInd;
+    if(sample_keep.empty()){
+      NumJobs = nInd;
+      jobs =  nInd;
+    } else{
+      int tmp_nInd = sample_keep.size();
+      NumJobs = tmp_nInd;
+      jobs =  tmp_nInd;
+
+    }
 
     allPars = new eachPars[NumJobs];
+    int allPars_counter = 0 ;
     for(int i=0;i<nInd;i++){
-        allPars[i].ind1=i;
-        allPars[i].ind2=0;
-        allPars[i].numIter=0;
-        allPars[i].numIterPar=0;
-        allPars[i].pars=pars;
-        allPars[i].llh=0;
-        allPars[i].llhPar=0;
+        if(keepSamples[i]==0)
+          continue;
+        allPars[allPars_counter].ind1=i;
+        allPars[allPars_counter].ind2=0;
+        allPars[allPars_counter].numIter=0;
+        allPars[allPars_counter].numIterPar=0;
+        allPars[allPars_counter].pars=pars;
+        allPars[allPars_counter].llh=0;
+        allPars[allPars_counter].llhPar=0;
+        allPars_counter++;
     }
 
     printArray=new int[NumJobs];
