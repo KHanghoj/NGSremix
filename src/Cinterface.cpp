@@ -853,7 +853,7 @@ int main(int argc, char *argv[]){
     }     
     fclose(fp_paired);
     fprintf(stderr,"\n");
-    fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", nInd, time(NULL)-t_paired);
+    fprintf(stdout, "\t-> %d ancestry estimates took %ld sec.\n", NumJobs, time(NULL)-t_paired);
     // free stuff
     if (do_both_anc){
       for(int j = 0; j < nSites; j++) 
