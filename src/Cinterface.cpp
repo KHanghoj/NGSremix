@@ -677,15 +677,6 @@ int main(int argc, char *argv[]){
     fex(qname);
   fex(fname);
 
-  if (!sample_keep.empty()){
-    if(sample_keep.size()<2 && !do_both_anc){
-      fprintf(stderr, "-select must contain at least two indices - EXITING\n");
-      exit(0);
-    }
-    // make index zero-based
-    for(size_t i=0; i<sample_keep.size();i++)
-      sample_keep[i] -= 1;
-  } 
   int numInds;
   int nInd;
   int nSites;
@@ -762,6 +753,23 @@ int main(int argc, char *argv[]){
     exit(0);
   }
 
+  if (!sample_keep.empty()){
+    
+    for (int val: sample_keep){
+        if (val<1 || val>nInd){
+        fprintf(stderr, "-select index: %d is out of sample range (1-based): 1-%d - EXITING\n", val, nInd);
+        exit(0);
+      }
+    }    
+
+    if(sample_keep.size()<2 && !do_both_anc){
+      fprintf(stderr, "-select must contain at least two indices - EXITING\n");
+      exit(0);
+    }
+    // make index zero-based
+    for(size_t i=0; i<sample_keep.size();i++)
+      sample_keep[i] -= 1;
+  } 
 
   int *keepSamples = new int[nInd];
   for(int i=0; i<nInd; i++){
