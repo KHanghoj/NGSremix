@@ -29,10 +29,10 @@ To get the arguments available for `NGSremix` type the following:
 ./NGSremix
 
 Arguments:
-	-plink     [str] name of the binary plink file (excluding the .bed)
-	-beagle    [str] name of the gzipped beagle file
-	-fname     [str] Ancestral population frequencies
-	-qname     [str] Admixture proportions
+	-beagle    [str] name of the gzipped beagle file (for running from genotype likelihoods)
+	-plink     [str] prefix of the binary plink file (excluding the .bed; alternative to -beagle for running from called genotypes))
+	-fname     [str] path to ancestral population frequencies file (ending in .fopt.gz if estimated with NGSadmix, .P if estimated with ADMIXUTRE)
+	-qname     [str] path to admixture proportions file (ending in .qopt if estimated with NGSadmix NGSadmix, .Q if estimated with ADMIXTURE)
 	-o         [str] name of the output file
 
 Paired and Parental Ancestry Estimation
@@ -42,12 +42,11 @@ Setup:
 	-P         [int] Number of threads
 	-seed      [uint]
 	-tol       [float] Lower tolerance for excluding admixture/paired ancestry estimates [Default: 0.001]
-	-select    [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes]
+	-select    [Comma separated (1,2,3) and/or range with dash (1-3), 1-based indexes] Individuals to do estimates for
 	-notcool 1 [int] Disables paired ancestry. [Default -notcool 0] 
 Legacy:
 	-F 1       if you want to estimate inbreeding
 	-autosomeMax 22	 autosome ends with this chromsome
-
 
 ```
 
