@@ -3,7 +3,6 @@
 #include <cmath>
 
 
-
 void print_pars(double *par, int n){
   fprintf(stderr, "%f", par[0]);
   for (int i=1;i<n;i++)
@@ -27,10 +26,10 @@ double prob_gl_anc_af(double *gl1, double & f1, double & f2, int & ordered){
   double p_g0fa = f1 *f2;
   double p_g1fa = f1 * (1-f2) + f2 * (1-f1);
   double p_g2fa = (1-f1) * (1-f2);
-  if (ordered > 0)
-    return(gl1[0]*p_g0fa + gl1[1]*p_g1fa / 2.0 + gl1[2]*p_g2fa);
-  else
-    return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
+  //if (ordered > 0)
+    //return(gl1[0]*p_g0fa + gl1[1]*p_g1fa / 2.0 + gl1[2]*p_g2fa);
+  //else
+  return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
 
 }
 
@@ -42,9 +41,9 @@ double prob_gt_anc_af(unsigned short int &gt1, double & f1, double & f2, int & o
   }else if (gt1==1){
         
    p_af = (f1 * (1-f2) + f2 * (1-f1));
-   if (ordered > 0){
-        p_af = p_af / 2.0;
-   }
+   // if (ordered > 0){
+   //   p_af = p_af / 2.0;
+   //}
   }else if (gt1==0){
     p_af = (1-f1) * (1-f2);
   }else if(gt1==3){ // missing
