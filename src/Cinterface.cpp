@@ -48,6 +48,8 @@ int cunt;
 int doInbreeding =0;
 int do_both_anc = 0;
 int MYSEED = 999999;
+int numBoot = 0;
+int blockSize = 1000;
 
 eachPars *allPars = NULL;
 
@@ -279,6 +281,8 @@ void info(){
   
   fprintf(stderr,"Paired and Parental Ancestry Estimation\n");
   fprintf(stderr,"\t-bothanc 1 [int] Estimates paired and parental ancestries for each individual. Note Relatedness will NOT be estimated. [Default -bothanc 0]\n\n");
+  fprintf(stderr,"\t-boot 0 [int] Number of bootstraps [Default 0]\n\n");
+  fprintf(stderr,"\t-block 1000 [int] Number of SNPs in block [Default 0]\n\n");
   
   fprintf(stderr,"Setup:\n"); 
   fprintf(stderr,"\t-P         [int] Number of threads\n");
@@ -312,6 +316,12 @@ void *functionC(void *a) //the a means nothing
     int i=p.ind1;
     int j=p.ind2;
     int numIt=0;
+    int myBlockSize=0;
+    if( numBoot>0 ){
+      if( running_job % (numBoot+1) != 0) // dont boopstrap the first
+	myBlockSize = blockSize;
+    }
+    
     if(usePlink){
       if(COOL_PA)
         relateAdmix(pars->tolStop,pars->nSites,pars->K,pars->maxIter,pars->useSq,numIt,pars->data->matrix[i],pars->data->matrix[j],pars->Q_paired[i],pars->Q_paired[j],p.start,pars->F,pars->tol, COOL_PA);
@@ -326,7 +336,6 @@ void *functionC(void *a) //the a means nothing
     }
     p.numIter=numIt;
     p.numI[0]=numIt;
-    
     //////////////////////////////////////////////
 
     pthread_mutex_lock(&mutex1);
@@ -340,8 +349,16 @@ void *functionC(void *a) //the a means nothing
     
       if(printArray[cunt]==0)
 	break;
+      if(numBoot==0 )
+	fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
+      else{
+	if(cunt % (numBoot+1) == 0 )
+	  fprintf(fp,"org\t%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
+	else
+	  fprintf(fp,"boot\t%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
+      }
 
-      fprintf(fp,"%d\t%d\t%f\t%f\t%f\t%d\n",allPars[cunt].ind1+1,allPars[cunt].ind2+1,allPars[cunt].start[0],allPars[cunt].start[1],allPars[cunt].start[2],allPars[cunt].numI[0]);
+      
         cunt++;
     }
 
@@ -370,23 +387,32 @@ void *functionPaired(void *a) //the a means nothing
     double llh=0, llhPar=0;
     int do_par = 1;
     int do_not_par= 0;
+    int myBlockSize=0;
+    int seed = 0;
+    if( numBoot>0 ){
+      if( running_job % (numBoot+1) != 0){ // dont boopstrap the first
+	myBlockSize = blockSize;
+	seed=running_job+MYSEED;
+      }
+      
+      
+    }
+
+    
     if(useBeagle){
-        numIter= est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
-        numIterPar= est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+      numIter=    est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, p.pairedPars->pairedParameters, do_not_par, llh , myBlockSize,seed);
+      numIterPar= est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, p.pairedPars->parentalParameters, do_par, llhPar , myBlockSize,seed);
       } else if(usePlink){
-        numIter= est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
-        numIterPar= est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+      numIter=    est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F,  p.pairedPars->pairedParameters, do_not_par, llh , myBlockSize,seed);
+      numIterPar= est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F,  p.pairedPars->parentalParameters, do_par, llhPar, myBlockSize,seed);
         } else {
       
       }
-  
     allPars[c].numIter = numIter;
     allPars[c].numIterPar = numIterPar;
     allPars[c].llh = llh;
     allPars[c].llhPar = llhPar;
-      
     //////////////////////////////////////////////
-
     pthread_mutex_lock(&mutex1);
 
     int d = NumJobs-running_job;
@@ -399,30 +425,36 @@ void *functionPaired(void *a) //the a means nothing
       if(printArray[cunt]==0)
         break;
 
-    // print stuff to file
+       
+      // print stuff to file
       int ind_idx = allPars[cunt].ind1;
       fprintf(fp_paired, "%d", ind_idx+1);
+      if(numBoot>0){
+	if(cunt % (numBoot+1) == 0 )
+	  fprintf(fp_paired, " org");
+	else
+	  fprintf(fp_paired, " boot");
+      }
       int K = pars->K;
       int nKs = (K-1)*K / 2 + K;
-        fprintf(fp_paired, " %f", allPars[cunt].pars->Q_paired[ind_idx][0]);
-        for (int ii=1;ii<nKs;ii++){
-          fprintf(fp_paired, ",%f", allPars[cunt].pars->Q_paired[ind_idx][ii]);
-         }         
-        fprintf(fp_paired, " %d", allPars[cunt].numIter);
-        fprintf(fp_paired, " %f", allPars[cunt].llh);
-
+      fprintf(fp_paired, " %f", allPars[cunt].pairedPars->pairedParameters[0]);
+      for (int ii=1;ii<nKs;ii++){
+          fprintf(fp_paired, ",%f", allPars[cunt].pairedPars->pairedParameters[ii]);
+      }         
+      fprintf(fp_paired, " %d", allPars[cunt].numIter);
+      fprintf(fp_paired, " %f", allPars[cunt].llh);
+      
       nKs = K*2;
-        fprintf(fp_paired, " %f", allPars[cunt].pars->Q_parental[ind_idx][0]);
-        for (int ii=1;ii<nKs;ii++){
-          fprintf(fp_paired, ",%f", allPars[cunt].pars->Q_parental[ind_idx][ii]);
-         }         
-        fprintf(fp_paired, " %d", allPars[cunt].numIterPar);
-        fprintf(fp_paired, " %f", allPars[cunt].llhPar);
+      fprintf(fp_paired, " %f", allPars[cunt].pairedPars->parentalParameters[0]);
+      for (int ii=1;ii<nKs;ii++){
+	fprintf(fp_paired, ",%f", allPars[cunt].pairedPars->parentalParameters[ii]);
+      }         
+      fprintf(fp_paired, " %d", allPars[cunt].numIterPar);
+      fprintf(fp_paired, " %f", allPars[cunt].llhPar);
       fprintf(fp_paired, "\n");
       
-        cunt++;
+      cunt++;
     }
-
   }
   pthread_mutex_unlock(&mutex1);
   return NULL;
@@ -617,6 +649,10 @@ int main(int argc, char *argv[]){
       sample_keep = parse_select_string(str);
     } else if(strcmp(argv[argPos], "-seed") == 0){
       MYSEED = atoi(argv[argPos+1]);    
+    } else if(strcmp(argv[argPos], "-boot") == 0){
+      numBoot = atoi(argv[argPos+1]);    
+    } else if(strcmp(argv[argPos], "-block") == 0){
+      blockSize = atoi(argv[argPos+1]);    
     } else if(strcmp(argv[argPos], "-tol") == 0){
       tol = atof(argv[argPos+1]);
     } else if(strcmp(argv[argPos], "-bothanc")==0){
@@ -632,6 +668,11 @@ int main(int argc, char *argv[]){
 
   if((useBeagle && usePlink) || (!useBeagle && !usePlink)){
     fprintf(stderr, "\n\nERROR - cannot provide both (or none of) '-beagle' and '-plink' file\n\n");
+    info();
+    exit(0);
+  }
+  if(numBoot > 0 && nThreads == 1 ){
+    fprintf(stderr, "\n\nERROR - boostrap is only implemented which threading. use option -P e.g. -P 10 \n\n");
     info();
     exit(0);
   }
@@ -774,6 +815,8 @@ int main(int argc, char *argv[]){
     // add header
     fprintf(fp_paired, "ind paired_est paired_iter paired_ll parental_est parental_iter parental_ll\n");
     fprintf(stdout,"\t-> Estimating ancestry coefficients. Dumping to %s\n", outname2.c_str());
+
+
     if (nThreads==1){
       for (int i=0; i<nInd;i++){
         if(i%10==0)
@@ -785,11 +828,11 @@ int main(int argc, char *argv[]){
         int do_par = 1;
         int do_not_par= 0;
         if(useBeagle){
-          numIter = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
-          numIterPar = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+          numIter = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh,0,0);
+          numIterPar = est_paired_anc_gl(pars->nSites, pars->K, pars->dataGL->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar,0,0);
         } else if(usePlink){
-          numIter = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh);
-          numIterPar = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar);
+          numIter = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_paired[i], do_not_par, llh,0,0);
+          numIterPar = est_paired_anc_gt(pars->nSites, pars->K, pars->data->matrix[i], pars->F, pars->Q_parental[i], do_par, llhPar,0,0);
         } else {
           // should not happen
         }
@@ -809,46 +852,52 @@ int main(int argc, char *argv[]){
         fprintf(fp_paired, " %f", llhPar);
         fprintf(fp_paired, "\n");
       } // per ind
-    } else {
-    // threading
-    if(sample_keep.empty()){
-      NumJobs = nInd;
-      jobs =  nInd;
-    } else{
-      int tmp_nInd = sample_keep.size();
-      NumJobs = tmp_nInd;
-      jobs =  tmp_nInd;
-
     }
+    else {    // threading
+      if(sample_keep.empty()){
+	NumJobs = nInd * (numBoot+1);
+	jobs =  nInd * (numBoot+1);
+      } else{
+	int tmp_nInd = sample_keep.size();
+	NumJobs = tmp_nInd * (numBoot+1);
+	jobs =  tmp_nInd * (numBoot+1);
+      }
 
-    allPars = new eachPars[NumJobs];
-    int allPars_counter = 0 ;
-    for(int i=0;i<nInd;i++){
+      allPars = new eachPars[NumJobs];
+      int allPars_counter = 0 ;
+      for(int i=0;i<nInd;i++){
         if(keepSamples[i]==0)
           continue;
-        allPars[allPars_counter].ind1=i;
-        allPars[allPars_counter].ind2=0;
-        allPars[allPars_counter].numIter=0;
-        allPars[allPars_counter].numIterPar=0;
-        allPars[allPars_counter].pars=pars;
-        allPars[allPars_counter].llh=0;
-        allPars[allPars_counter].llhPar=0;
-        allPars_counter++;
-    }
+	for(int b=0 ; b < (numBoot+1) ; b++ ){
+	  allPars[allPars_counter].pairedPars = new pairedParsStruct;
+	  allPars[allPars_counter].pairedPars->parentalParameters = new double[nKs_parental];
+	  allPars[allPars_counter].pairedPars->pairedParameters =  new double[nKs_paired];
+	  allPars[allPars_counter].ind1=i;
+	  allPars[allPars_counter].ind2=0;
+	  allPars[allPars_counter].numIter=0;
+	  allPars[allPars_counter].numIterPar=0;
+	  allPars[allPars_counter].pars=pars;
+	  allPars[allPars_counter].llh=0;
+	  allPars[allPars_counter].llhPar=0;
 
-    printArray=new int[NumJobs];
-    for(int c=0;c<NumJobs;c++){
-      printArray[c]=0;
-    }    
-
-    pthread_t thread1[nThreads];
-  
-    for (int i = 0; i < nThreads; i++)
-      pthread_create(&thread1[i], NULL, &functionPaired, NULL);
-  
-    // Wait all threads to finish
-    for (int i = 0; i < nThreads; i++)
-      pthread_join(thread1[i], NULL);
+	  
+	  allPars_counter++;
+	}
+      }
+      
+      printArray=new int[NumJobs];
+      for(int c=0;c<NumJobs;c++){
+	printArray[c]=0;
+      }    
+      
+      pthread_t thread1[nThreads];
+      
+      for (int i = 0; i < nThreads; i++)
+	pthread_create(&thread1[i], NULL, &functionPaired, NULL);
+      
+      // Wait all threads to finish
+      for (int i = 0; i < nThreads; i++)
+	pthread_join(thread1[i], NULL);
       
     }     
     fclose(fp_paired);
@@ -976,54 +1025,48 @@ int main(int argc, char *argv[]){
   }else{ // with threads (the cool way)
 
     if(sample_keep.empty()){
-      NumJobs = nInd*(nInd-1)/2;
-      jobs =  nInd*(nInd-1)/2;
+      NumJobs = nInd*(nInd-1)/2;// * (numBoot+1);
+      jobs =  nInd*(nInd-1)/2;// * (numBoot+1); 
     } else{
       int tmp_nInd = sample_keep.size();
-      NumJobs = tmp_nInd*(tmp_nInd-1)/2;
-      jobs =  tmp_nInd*(tmp_nInd-1)/2;
-
+      NumJobs = tmp_nInd*(tmp_nInd-1)/2;// * (numBoot+1);
+      jobs =  tmp_nInd*(tmp_nInd-1)/2;//* (numBoot+1);
     }
     cunt = 0;
     allPars = new eachPars[NumJobs];
-
     int *indMatrix = new int[nInd*(nInd-1)];
     int cunter=0;
     for(int i=0;i<nInd-1;i++){
       for(int j=i+1;j<nInd;j++){
-        if(keepSamples[i]==0)
-          continue;
-        if(keepSamples[j]==0)
-          continue;
-        
-	indMatrix[cunter*2]=i;
-	indMatrix[cunter*2+1]=j;
-	cunter++;
+	//	for(int b=0 ; b < (numBoot+1) ; b++ ){
+	  if(keepSamples[i]==0)
+	    continue;
+	  if(keepSamples[j]==0)
+	    continue;
+	  indMatrix[cunter*2]=i;
+	  indMatrix[cunter*2+1]=j;
+	  cunter++;
+	  //}
       }
     }
 
     printArray=new int[NumJobs];
     for(int c=0;c<NumJobs;c++){
       printArray[c]=0;
-    
       double *start=new double[3];
       int *numI=new int[1];
-
       // GO HERE
       init_param(start, 3);
       int i=indMatrix[c*2];
       int j=indMatrix[c*2+1];
-      
       allPars[c].start=start;
       allPars[c].ind1=i;
       allPars[c].ind2=j;
       allPars[c].numIter=0;
       allPars[c].numI=numI;
       allPars[c].pars=pars;
-      
     }
     pthread_t thread1[nThreads];
-    
     for (int i = 0; i < nThreads; i++)
       pthread_create(&thread1[i], NULL, &functionC, NULL);
     

@@ -3,6 +3,7 @@
 #include <cmath>
 
 
+
 void print_pars(double *par, int n){
   fprintf(stderr, "%f", par[0]);
   for (int i=1;i<n;i++)
@@ -26,8 +27,8 @@ double prob_gl_anc_af(double *gl1, double & f1, double & f2, int & ordered){
   double p_g0fa = f1 *f2;
   double p_g1fa = f1 * (1-f2) + f2 * (1-f1);
   double p_g2fa = (1-f1) * (1-f2);
-  //if (ordered > 0)
-    //return(gl1[0]*p_g0fa + gl1[1]*p_g1fa / 2.0 + gl1[2]*p_g2fa);
+  // if (ordered > 0)
+  //  return(gl1[0]*p_g0fa + gl1[1]*p_g1fa / 2.0 + gl1[2]*p_g2fa);
   //else
   return(gl1[0]*p_g0fa + gl1[1]*p_g1fa + gl1[2]*p_g2fa);
 
@@ -42,7 +43,7 @@ double prob_gt_anc_af(unsigned short int &gt1, double & f1, double & f2, int & o
         
    p_af = (f1 * (1-f2) + f2 * (1-f1));
    // if (ordered > 0){
-   //   p_af = p_af / 2.0;
+   //    p_af = p_af / 2.0;
    //}
   }else if (gt1==0){
     p_af = (1-f1) * (1-f2);
@@ -379,8 +380,16 @@ int is_missing2(double *ary){
     return 0;
 }
 
+int* sampleWithReplacement(int numEntries) {
+    int* count = new int[numEntries](); // Use parentheses to initialize with zeros
+    for (int i = 0; i < numEntries; i++) {
+        int entry = rand() % numEntries;
+        count[entry]++;
+    }
+    return count;
+}
 
-int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, int & ordered, double & loglike){
+int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, int & ordered, double & loglike, int numBoot,int seed){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
@@ -393,26 +402,73 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
     }
   }
 
+ 
   int npop = K;
   int precalcN = ordered>0?K*K:((K-1)*K/2+K);
   int nKs = ordered>0?K*2:((K-1)*K/2+K);
   int ksquare = K*K;
-  double** pre_calc = new double*[totsites];
   int totsites_idx = 0;
-  for(int i=0;i<nSites;i++){
-    if(keeplist[i]==0)
-      continue;
-    pre_calc[totsites_idx] = new double[precalcN];
-    int idx = 0;
-    for(int a11=0;a11<npop;a11++){
+  double** pre_calc;
+  if(numBoot>0){
+    
+    
+    int nBlocks = ( nSites / numBoot ) +1;
+    totsites = nBlocks*numBoot; // remove unfilled block
+    srand(seed);
+    int* counts = sampleWithReplacement(nBlocks);
+  
+    pre_calc = new double*[totsites];
+    int b=0;
+    int countInBlock = counts[b];
+    for(int i=0;i<nSites;i++){
+      if(keeplist[i]==0)
+	continue;
+    
+      if(i > numBoot*(b+1)){
+	b++;
+	countInBlock = counts[b];
+	//	fprintf(stdout,"b=%d  counts=%d \n",b,counts[b]);
+      }
+      for(int c=0;c < countInBlock;c++){
+	pre_calc[totsites_idx] = new double[precalcN];
+	int idx = 0;
+	for(int a11=0;a11<npop;a11++){
+	  for(int a12=ordered>0?0:a11;a12<npop;a12++){
+	    pre_calc[totsites_idx][idx] = prob_gl_anc_af(&gl1[i*3], f[i][a11], f[i][a12], ordered);
+	    idx++;
+	  }
+	}
+	totsites_idx++;
+      }
+    }
+ 
+    if(totsites< totsites_idx){
+      fprintf(stdout,"Error more sites than possible. totsites_idx %d totsites %d\n",totsites_idx,totsites);
+
+    }
+      
+    totsites = totsites_idx;
+
+  }   
+  else{
+    //    fprintf(stdout, "no boot!! \n");
+    pre_calc = new double*[totsites]; 
+    for(int i=0;i<nSites;i++){
+      if(keeplist[i]==0)
+	continue;
+      pre_calc[totsites_idx] = new double[precalcN];
+      int idx = 0;
+      for(int a11=0;a11<npop;a11++){
         for(int a12=ordered>0?0:a11;a12<npop;a12++){
-            pre_calc[totsites_idx][idx] = prob_gl_anc_af(&gl1[i*3], f[i][a11], f[i][a12], ordered);
-            idx++;
+	  pre_calc[totsites_idx][idx] = prob_gl_anc_af(&gl1[i*3], f[i][a11], f[i][a12], ordered);
+	  idx++;
         }
-    }   
-    totsites_idx++;
+      }
+      totsites_idx++;
+    }
   }
 
+  //  fprintf(stdout,"totsites_idx %d totsites %d\n",totsites_idx,totsites);
   int maxIter = 5000;
   int currIter = 0;
   double tolStop=0.000001;
@@ -433,7 +489,7 @@ int est_paired_anc_gl(int nSites, int K, double *gl1, double **f, double *res2, 
 }
 
 
-int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, double *res2, int &ordered, double & loglike){
+int est_paired_anc_gt(int nSites, int K, unsigned short int *gt1, double **f, double *res2, int &ordered, double & loglike, int numBoot, int seed){
 
   int totsites = 0;
   int * keeplist  = new int[nSites];
