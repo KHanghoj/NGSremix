@@ -445,9 +445,14 @@ typedef struct  { //pars used by ngsrelateadmix
   
 }myPars ;
 
+typedef struct  { //parameters used paired/parents. need for bootstrap
+  double *pairedParameters;
+  double *parentalParameters;
+  int seed;
+}pairedParsStruct ;
 
 
-typedef struct  { //pars used by relateHMM
+typedef struct  {
   //?? min;
   //pointer
   myPars *pars; //1
@@ -459,5 +464,6 @@ typedef struct  { //pars used by relateHMM
   int *numI;
   double llh;
   double llhPar;
-}eachPars ;//pars used by relateHMM
+  pairedParsStruct *pairedPars;
+}eachPars ;
 
